@@ -1,0 +1,5 @@
+ngx_addon_name=ngx_http_opengauss_module 
+HTTP_MODULES="$HTTP_MODULES ngx_http_opengauss_module"
+CORE_INCS="$CORE_INCS /opt/software/openGauss/include/postgresql/server/libpq /opt/software/openGauss/include/postgresql/server /usr/include $ngx_addon_dir"
+CORE_LIBS="$CORE_LIBS -L/opt/software/openGauss/lib -lpq "
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_opengauss_module.c"
