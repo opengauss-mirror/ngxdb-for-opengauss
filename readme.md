@@ -1,15 +1,17 @@
 # 欢迎使用 NGXDB FOR OPENGAUSS开发套件
 
 ------
-#----会sql就能做后端
+#　　会sql就能做后端
 ------
 
 ##一、介绍
     本开发框架为专为opengauss开发，能完成编写代码、接口文档、单元测试、部署，可以只用纯sql语句完成全套系统从开发到部署，完全开源。
 文件目录
+
 |---extension  opengauss扩展
 &nbsp;---opengauss nginx插件
 &nbsp;---python_test python的测试代码
+
 ##二、安装步骤
 ###1、安装opengauss
 详见官网
