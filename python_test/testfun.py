@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 
-url='http://192.168.1.94:80/func/'
+url='http://127.0.0.1:80/func/'
 loginname='admin'  #账号1
 passward='123456' #密码1
 conn=psycopg2.connect(database="opengauss", user="gm", password="gao@12345", host="192.168.1.94", port="5432")

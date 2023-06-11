@@ -17,7 +17,7 @@
 
 &nbsp;--python_test python的测试代码
 
-readme.rd
+readme.md
 
 ##二、安装步骤
 
