@@ -1,0 +1,4 @@
+comment='opengauss login'
+default_version='0.1'
+relocatable=true
+
