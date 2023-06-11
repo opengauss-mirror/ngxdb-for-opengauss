@@ -7,6 +7,7 @@
 ------
 
 ##一、介绍
+
     本开发框架为专为opengauss开发，能完成编写代码、接口文档、单元测试、部署，可以只用纯sql语句完成全套系统从开发到部署，完全开源。
 文件目录
 
@@ -19,6 +20,7 @@
 readme.rd
 
 ##二、安装步骤
+
 ###1、安装opengauss
 详见官网
 *请将opengauss安装目录设为/opt/software/openGauss，以便后续步骤不用修改opengauss依赖
@@ -27,6 +29,7 @@ readme.rd
 ```linux
 git clone -b 0.1 --single-branch https://gitee.com/opengauss/ngxdb-for-opengauss.git
 ```
+
 ###3、nginx编译安装
 下载nginx源码，以nginx24.0为例
 ```linux
@@ -42,6 +45,7 @@ cd ..
 ```
 *如果opengauss的安装目录不是/opt/software/openGauss，会提示有文件找不到，请将src/opengauss/config文件里的/opt/software/openGauss替换为opengauss的安装目录
 *nginx默认安装目录为/usr/local/nginx，安装完nginx后请核对
+
 ###4、安装opengauss扩展示例
 ```linux
 cp extension/*.* /opt/software/openGauss/share/postgresql/extension/
@@ -50,6 +54,7 @@ gsql
 create extension opengauss_login;
 \q
 ```
+
 ###5、配置nginx
 ```linux
 vi /usr/local/nginx/conf/nginx.conf
@@ -117,7 +122,9 @@ vi /usr/local/nginx/conf/nginx.conf
 ```linux
 /usr/local/nginx/sbin/nginx
 ```
+
 ###6、测试
+
 ####使用测试代码
 ```linux
 python python_test\testfun.py
@@ -126,11 +133,13 @@ python python_test\testfun.py
 如果运行完演示
 总用例:16 成功:16 失败:0
 则表示安装成功。
+
 ####使用浏览器
 在本机打开浏览器，在地址栏输入http://127.0.0.1/help
 可以看到后端接口的帮助文档
 在本机打开浏览器，在地址栏输入http://127.0.0.1/sysinfo/login?loginname=admin&pass=123456
 可以看到浏览器返回json字符串，详见帮助文档
+
 ##三、说明
 本版本为0.1，仅供熟悉本框架的初学者练习，下一版本为可实用的版本
 
