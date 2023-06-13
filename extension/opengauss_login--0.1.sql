@@ -120,7 +120,7 @@ BEGIN
       FROM   pg_catalog.pg_roles
       WHERE  rolname = 'conn') THEN
 
-      CREATE ROLE my_user LOGIN PASSWORD 'Gao@12345';
+      CREATE ROLE conn LOGIN PASSWORD 'Gao@12345';
    END IF;
 
 END
