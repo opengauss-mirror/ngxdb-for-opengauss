@@ -21,8 +21,11 @@ ngxdb-for-opengauss
 |--python_test python的测试代码
 
 &nbsp;readme.md
+<<<<<<< HEAD
 
 &nbsp;License
+=======
+>>>>>>> 2907a26b8405956d8d783107aff60d3c19852e90
 
 ##二、安装步骤
 
@@ -63,7 +66,11 @@ cd ..
 ###4、安装opengauss扩展示例
 ```linux
 cp ngxdb-for-opengauss/extension/*.* /opt/software/openGauss/share/postgresql/extension/
+<<<<<<< HEAD
 gs_ctl start
+=======
+gs_ctl restart
+>>>>>>> 2907a26b8405956d8d783107aff60d3c19852e90
 gsql
 create extension opengauss_login;
 \q

@@ -125,6 +125,24 @@ $BODY$
   LANGUAGE plpgsql VOLATILE SECURITY DEFINER
   COST 100;
 
+<<<<<<< HEAD
+=======
+
+do
+$do$
+BEGIN
+   IF NOT EXISTS (
+      SELECT   *                    -- SELECT list can stay empty for this
+      FROM   pg_catalog.pg_roles
+      WHERE  rolname = 'conn') THEN
+
+      CREATE ROLE conn LOGIN PASSWORD 'Gao@12345';
+   END IF;
+
+END
+$do$;
+
+>>>>>>> 2907a26b8405956d8d783107aff60d3c19852e90
 DROP FUNCTION IF EXISTS "gm"."gethelp"();
 CREATE OR REPLACE FUNCTION "gm"."gethelp"()
   RETURNS "pg_catalog"."text" AS $BODY$
