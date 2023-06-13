@@ -22,6 +22,8 @@ ngxdb-for-opengauss
 
 &nbsp;readme.md
 
+&nbsp;License
+
 ##二、安装步骤
 
 ###1、安装opengauss
