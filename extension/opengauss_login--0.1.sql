@@ -6,12 +6,8 @@ create schema if not exists "gm" ;
 do
 $do$
 BEGIN
-   IF NOT EXISTS (
-      SELECT   *                    -- SELECT list can stay empty for this
-      FROM   pg_catalog.pg_roles
-      WHERE  rolname = 'conn') THEN
-
-      CREATE ROLE conn LOGIN PASSWORD 'Gao@12345';
+   IF NOT EXISTS ( SELECT * FROM pg_user WHERE usename = 'conn') THEN
+      CREATE user conn  PASSWORD 'Gao@12345';
    END IF;
 
 END
