@@ -9,23 +9,35 @@
 ##一、介绍
 
     本开发框架为专为opengauss开发，能完成编写代码、接口文档、单元测试、部署，可以只用纯sql语句完成全套系统从开发到部署，完全开源。
+	
 文件目录
+
+ngxdb-for-opengauss
 
 |--extension  opengauss扩展
 
-&nbsp;--opengauss nginx插件
+|--opengauss nginx插件
 
-&nbsp;--python_test python的测试代码
+|--python_test python的测试代码
 
-readme.md
+&nbsp;readme.md
 
 ##二、安装步骤
 
 ###1、安装opengauss
-详见官网
+详见官网，建议安装极简版练习
 *请将opengauss安装目录设为/opt/software/openGauss，以便后续步骤不用修改opengauss依赖
+*安装完修改/opt/software/openGauss/data/single_node/postgresql.conf
+···
+session_timeout=86400 #避免测试长时间没有连接，再次使用时连接出错
+···
+增加
+···
+# Add settings for extensions here
+support_extended_features=on #打开自定义的扩展功能
+···
 
-###2、下载源码
+###2、下载ngxdb-for-opengauss 0.1版源码
 ```linux
 git clone -b 0.1 --single-branch https://gitee.com/opengauss/ngxdb-for-opengauss.git
 ```
@@ -37,19 +49,19 @@ wget https://nginx.org/download/nginx-1.24.0.tar.gz
 tar zxf nginx-1.24.0.tar.gz
 cd nginx-1.24.0
 cd src
-cp ../../opengauss .
+cp -r ../../ngxdb-for-opengauss/opengauss .
 cd ..
-./configure --add-module=src/opengauss  
 make & make install
 cd ..
 ```
 *如果opengauss的安装目录不是/opt/software/openGauss，会提示有文件找不到，请将src/opengauss/config文件里的/opt/software/openGauss替换为opengauss的安装目录
 *nginx默认安装目录为/usr/local/nginx，安装完nginx后请核对
+*最后的cd ..是回到下载软件的目录，以便后续操作
 
 ###4、安装opengauss扩展示例
 ```linux
-cp extension/*.* /opt/software/openGauss/share/postgresql/extension/
-gs_ctl restart
+cp ngxdb-for-opengauss/extension/*.* /opt/software/openGauss/share/postgresql/extension/
+gs_ctl start
 gsql
 create extension opengauss_login;
 \q

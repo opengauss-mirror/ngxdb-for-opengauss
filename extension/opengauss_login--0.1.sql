@@ -3,6 +3,20 @@ CREATE SCHEMA if not exists "sysinfo" ;
 drop schema if exists "gm" cascade;
 create schema if not exists "gm" ;
 
+do
+$do$
+BEGIN
+   IF NOT EXISTS (
+      SELECT   *                    -- SELECT list can stay empty for this
+      FROM   pg_catalog.pg_roles
+      WHERE  rolname = 'conn') THEN
+
+      CREATE ROLE conn LOGIN PASSWORD 'Gao@12345';
+   END IF;
+
+END
+$do$;
+
 DROP FUNCTION IF EXISTS "gm"."actionupdate"("p_systemid" int4);
 CREATE OR REPLACE FUNCTION "gm"."actionupdate"("p_systemid" int4=100)
   RETURNS "pg_catalog"."bool" AS $BODY$BEGIN
@@ -110,21 +124,6 @@ END
 $BODY$
   LANGUAGE plpgsql VOLATILE SECURITY DEFINER
   COST 100;
-
-
-do
-$do$
-BEGIN
-   IF NOT EXISTS (
-      SELECT   *                    -- SELECT list can stay empty for this
-      FROM   pg_catalog.pg_roles
-      WHERE  rolname = 'conn') THEN
-
-      CREATE ROLE my_user LOGIN PASSWORD 'Gao@12345';
-   END IF;
-
-END
-$do$;
 
 DROP FUNCTION IF EXISTS "gm"."gethelp"();
 CREATE OR REPLACE FUNCTION "gm"."gethelp"()
