@@ -114,12 +114,12 @@ vi /usr/local/nginx/conf/nginx.conf
         #access_log  logs/host.access.log  main;
 
        location /func {
-          opengaussconn "host=127.0.0.1 dbname=postgres user=conn password=Gao12345 port=5432";
+          opengaussconn "host=127.0.0.1 dbname=postgres user=conn password=Gao@12345 port=5432";
           rewrite ^/func/(.*)$ /$1 break;
        }
 
         location /help {
-            opengausshelp "host=127.0.0.1 dbname=postgres user=conn password=Gao12345 port=5432";
+            opengausshelp "host=127.0.0.1 dbname=postgres user=conn password=Gao@12345 port=5432";
             break;
         }
 
@@ -141,13 +141,22 @@ vi /usr/local/nginx/conf/nginx.conf
 
 ####使用测试代码
 ```linux
-python python_test\testfun.py
+python3 ngxdb-for-opengauss\python_test\testfun.py
 ```
 运行大约耗时10分钟，会测试正常登录、token验证、10分钟内超过5次非法登录将锁定账号10分钟，10次非法登录将锁定3小时。
-如果运行完演示
+如果运行完最后一行现示
 总用例:16 成功:16 失败:0
 则表示安装成功。
-
+*如果安装完opengauss，yum运行出错，可能是动态库有冲突，如在openeuler22里，opengauss动态库libstdc++.so.6与系统的libstdc++.so.6有冲突，将/opt/software/openGauss/lib里的libstdc++.so.6更名为libstdc++.so.6.bak即可
+*需要安装python、python-devel(openeuler22)，运行如下命令
+```linux
+yum install python3 python3-devel
+```
+*需要安装python的库，如在openeuler里，运行如下命令
+```
+pip3 install psycopg2-binary
+pip3 install requests
+```
 ####使用浏览器
 在本机打开浏览器，在地址栏输入http://127.0.0.1/help
 可以看到后端接口的帮助文档
