@@ -53,6 +53,7 @@ cd nginx-1.24.0
 cd src
 cp -r ../../ngxdb-for-opengauss/opengauss .
 cd ..
+./configure --add-module=src/opengauss
 make & make install
 cd ..
 ```
