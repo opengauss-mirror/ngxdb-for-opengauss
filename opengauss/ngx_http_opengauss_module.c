@@ -1,9 +1,9 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 #include <ngx_config.h>
-#include "libpq-fe.h"
+#include "libpq/libpq-fe.h"
 #include <stdio.h>
-
+#include <stdbool.h>
 
 #define freeparam {for (int i=0;i<local_conf->params[index].nParams;i++) free(paramValues[i]);free(paramValues);}
 #define freelogparam {free(logparam[0]);free(logparam[1]);free(logparam[2]);free(logparam[3]);if (logparam[5]==NULL) free(logparam[5]);}
@@ -230,7 +230,11 @@ static ngx_int_t ngx_http_opengaussproc_handler(ngx_http_request_t *req) {
     }
     freeparam;
     logparam[4]=aa;
-    PQexecParams(conn,"insert into sysinfo.serverlog(clientip,funcname,content,logtime,serverip,params,res,operatorid,head) values($1,$2,$3,now(),inet_client_addr(),$4,$5,$6,$7);",7,NULL,(const char *const*)logparam,NULL,NULL,0);
+    PGresult *res1=PQexecParams(conn,"insert into sysinfo.serverlog(clientip,funcname,content,logtime,serverip,params,res,operatorid,head) values($1,$2,$3,now(),inet_client_addr(),$4,$5,$6,$7);",7,NULL,(const char *const*)logparam,NULL,NULL,0);
+//    ExecStatusType et1=PQresultStatus(res1);
+//    if (et1!=PGRES_TUPLES_OK) {
+//        ngx_log_error(NGX_LOG_EMERG, req->connection->log, 0, PQresultErrorField(res1,PG_DIAG_MESSAGE_PRIMARY),PQresultErrorField(res1,PG_DIAG_INTERNAL_QUERY));
+//    }
     freelogparam;
     if (et==PGRES_TUPLES_OK || local_conf->debug)
     {
@@ -335,6 +339,7 @@ static char *ngx_http_opengauss_set(ngx_conf_t *cf,ngx_command_t *cmd, void *con
         ngx_conf_log_error(NGX_LOG_NOTICE,cf,0,"connect ok");
 //        ngx_conf_log_error(NGX_LOG_NOTICE,cf,0,"encoding:%s",pg_encoding_to_char(PQclientEncoding(conn)));
 //        PGresult *res=PQexec(conn,"select count(*) from pg_proc t1 left join pg_namespace t2 on t1.pronamespace=t2.oid where t2.nspname not in ('pg_catalog','information_schema','private','cron','myself')");
+//        PQexec(conn,"set client_encoding to SQL_ASCII");
         PGresult *res=PQexec(conn,"select count(*) from gm.nginx;");
         if (PQresultStatus(res)!=PGRES_TUPLES_OK) {
             PQclear(res);
