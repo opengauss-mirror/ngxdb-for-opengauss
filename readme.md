@@ -25,7 +25,7 @@ readme.md
 
 ## 二、安装步骤
 ### 1、安装opengauss
-详见官网
+详见官网，源码编译时，需要增加--with-python选项
 * 请将opengauss安装目录设为/opt/software/openGauss，以便后续步骤不用修改opengauss依赖
 ### 2、下载源码
 ```linux
@@ -51,6 +51,7 @@ cd ..
 cp extension/*.* /opt/software/openGauss/share/postgresql/extension/
 gs_ctl restart
 gsql
+create extension plpython3u;
 create extension opengauss_login;
 \q
 ```
