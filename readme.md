@@ -128,8 +128,11 @@ python python_test\testfun.py
  则表示安装成功。
 #### 使用浏览器
  在本机打开浏览器，在地址栏输入http://127.0.0.1/help
+ 
  可以看到后端接口的帮助文档
+ 
  在本机打开浏览器，在地址栏输入http://127.0.0.1/sysinfo/login?loginname=admin&pass=123456
+ 
  可以看到浏览器返回json字符串，详见帮助文档
 
 ## 三、说明
