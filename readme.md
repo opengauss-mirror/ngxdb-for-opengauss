@@ -130,6 +130,7 @@ python python_test\testfun.py
 可以看到后端接口的帮助文档
 在本机打开浏览器，在地址栏输入http://127.0.0.1/sysinfo/login?loginname=admin&pass=123456
 可以看到浏览器返回json字符串，详见帮助文档
+
 ##三、说明
 本版本为0.1，仅供熟悉本框架的初学者练习，下一版本为可实用的版本
 
