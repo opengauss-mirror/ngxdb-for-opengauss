@@ -148,9 +148,10 @@ ALTER FUNCTION gm.check_login(p_token character varying, p_actionid integer) OWN
 CREATE FUNCTION gethelp() RETURNS text
     LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
  AS $$
-	declare v_return text; 
+	declare v_return text; v_json json;
 BEGIN
-   select html1||aa||html2 into v_return from sysinfo.funchtml,(select array_to_json(array_agg(row_to_json(t))) aa from (select nspname a,proname b,description c from pg_proc t1 left join pg_namespace t2 on t1.pronamespace=t2.oid left join pg_description t3 on t1.oid=t3.objoid where t2.nspname in ('public','sysinfo') order by nspname,proname) t) t1 where htmlid=100;
+   select array_to_json(array_agg(row_to_json(t))) into v_json  from (select nspname a,proname b,description c from pg_proc t1 left join pg_namespace t2 on t1.pronamespace=t2.oid left join pg_description t3 on t1.oid=t3.objoid where t2.nspname in ('public','sysinfo') order by nspname,proname::bytea) t;
+   select html1||(v_json::text)||html2 into v_return from sysinfo.funchtml where htmlid=100 limit 1;
 	RETURN v_return;
 END$$;
 
@@ -450,6 +451,18 @@ END$$;
 ALTER FUNCTION sysinfo.loginaccount(p_loginname character varying, p_system character varying, p_ip character varying, p_accounttype integer, p_appid integer) OWNER TO gm;
 
 --
+-- Name: FUNCTION loginaccount(p_loginname character varying, p_system character varying, p_ip character varying, p_accounttype integer, p_appid integer) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION loginaccount(p_loginname character varying, p_system character varying, p_ip character varying, p_accounttype integer, p_appid integer)
+ IS '小程序登录
+loginname:登录码
+system:系统
+accounttype:小程序类型101微信
+appid:小程序id';
+
+
+--
 -- Name: operinfo_add(character varying, bigint, character varying, character varying, smallint, integer, json); Type: FUNCTION; Schema: sysinfo; Owner: gm
 --
 
@@ -738,6 +751,25 @@ $$;
 ALTER FUNCTION sysinfo.operinfoorg_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_upcode integer, p_headimgurl text, p_nickname character varying, p_birthday timestamp without time zone, p_sysoperorgjson json) OWNER TO gm;
 
 --
+-- Name: FUNCTION operinfoorg_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_upcode integer, p_headimgurl text, p_nickname character varying, p_birthday timestamp without time zone, p_sysoperorgjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION operinfoorg_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_upcode integer, p_headimgurl text, p_nickname character varying, p_birthday timestamp without time zone, p_sysoperorgjson json)
+ IS '新增操作员部门
+operatorname:姓名
+sex:性别
+phone:电话
+accounts:账号
+memo:备注
+upcode:邀请码
+headimgurl:头像
+nickname:昵称
+birthday:生日
+sysoperorgjson:{"sysorgid":部门id}
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
 -- Name: operinfoorg_del(character varying, integer); Type: FUNCTION; Schema: sysinfo; Owner: gm
 --
 
@@ -796,6 +828,25 @@ $$;
 ALTER FUNCTION sysinfo.operinfoorg_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_upcode integer, p_headimgurl text, p_nickname character varying, p_birthday timestamp without time zone, p_sysoperorgjson json) OWNER TO gm;
 
 --
+-- Name: FUNCTION operinfoorg_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_upcode integer, p_headimgurl text, p_nickname character varying, p_birthday timestamp without time zone, p_sysoperorgjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION operinfoorg_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_upcode integer, p_headimgurl text, p_nickname character varying, p_birthday timestamp without time zone, p_sysoperorgjson json)
+ IS '修改操作员部门
+operatorname:姓名
+sex:性别
+phone:电话
+accounts:账号
+memo:备注
+upcode:邀请码
+headimgurl:头像
+nickname:昵称
+birthday:生日
+sysoperorgjson:{"sysorgid":部门id}
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
 -- Name: operinfoorg_merge(character varying, bigint, character varying, smallint, character varying, character varying, character varying, integer, text, character varying, timestamp without time zone, json); Type: FUNCTION; Schema: sysinfo; Owner: gm
 --
 
@@ -832,6 +883,25 @@ $$;
 ALTER FUNCTION sysinfo.operinfoorg_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_upcode integer, p_headimgurl text, p_nickname character varying, p_birthday timestamp without time zone, p_sysoperorgjson json) OWNER TO gm;
 
 --
+-- Name: FUNCTION operinfoorg_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_upcode integer, p_headimgurl text, p_nickname character varying, p_birthday timestamp without time zone, p_sysoperorgjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION operinfoorg_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_upcode integer, p_headimgurl text, p_nickname character varying, p_birthday timestamp without time zone, p_sysoperorgjson json)
+ IS '合并操作员部门
+operatorname:姓名
+sex:性别
+phone:电话
+accounts:账号
+memo:备注
+upcode:邀请码
+headimgurl:头像
+nickname:昵称
+birthday:生日
+sysoperorgjson:{"sysorgid":部门id}
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
 -- Name: operinfoorg_query(character varying, integer, integer, bigint, character varying, smallint, character varying, character varying, character varying, integer, integer, text, character varying, timestamp without time zone, timestamp without time zone); Type: FUNCTION; Schema: sysinfo; Owner: gm
 --
 
@@ -844,11 +914,11 @@ begin
   if v_check->>'errorcode'<>'0' then return v_check; end if;
 
   if p_rows is null then
-    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.operatorid,toper.operatorname,t1.operatorname,t1.sex,t1.phone,t1.accounts,t1.pass,t1.tokenkey,t1.tokentime::varchar,t1.memo,t1.isused,t1.mycode,t1.upcode,t1.headimgurl,t1.nickname,t1.birthday::varchar,t1.tokentype,t1.tokeninterval,sysoperorg.sysoperorgjson from sysinfo.operinfo t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join (select operatorid,array_to_json(array_agg(row_to_json(t))) sysoperorgjson from (select  t1.operatorid,toper.operatorname,t1.sysorgid,t2.orgname from sysinfo.sysoperorg t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join sysinfo.sysorg torg on t1.sysorgid=torg.sysorgid) t group by t.operatorid) sysoperorg on t1.operatorid=sysoperorg.operatorid where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_pass is null or position(p_pass in t1.pass )>0) and (p_tokenkey is null or position(p_tokenkey in t1.tokenkey )>0) and (p_begintokentime is null or t1.tokentime>=p_begintokentime) and (p_endtokentime is null or t1.tokentime<=p_endtokentime) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_mycode is null or p_mycode=t1.mycode) and (p_upcode is null or p_upcode=t1.upcode) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) order by t1.operatorid) t;
+    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.operatorid,toper.operatorname,t1.operatorname,t1.sex,t1.phone,t1.accounts,t1.pass,t1.tokenkey,t1.tokentime::varchar,t1.memo,t1.isused,t1.mycode,t1.upcode,t1.headimgurl,t1.nickname,t1.birthday::varchar,t1.tokentype,t1.tokeninterval,sysoperorg.sysoperorgjson from sysinfo.operinfo t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join (select operatorid,array_to_json(array_agg(row_to_json(t))) sysoperorgjson from (select  t1.operatorid,t1.sysorgid,t2.orgname from sysinfo.sysoperorg t1 left join sysinfo.sysorg torg on t1.sysorgid=torg.sysorgid) t group by t.operatorid) sysoperorg on t1.operatorid=sysoperorg.operatorid where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_pass is null or position(p_pass in t1.pass )>0) and (p_tokenkey is null or position(p_tokenkey in t1.tokenkey )>0) and (p_begintokentime is null or t1.tokentime>=p_begintokentime) and (p_endtokentime is null or t1.tokentime<=p_endtokentime) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_mycode is null or p_mycode=t1.mycode) and (p_upcode is null or p_upcode=t1.upcode) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) order by t1.operatorid) t;
     v_c:=coalesce(json_array_length(v_return),0);
   else
     select count(*) into v_c from sysinfo.operinfo t1 where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_mycode is null or p_mycode=t1.mycode) and (p_upcode is null or p_upcode=t1.upcode) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) ;
-    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.operatorid,toper.operatorname,t1.operatorname,t1.sex,t1.phone,t1.accounts,t1.pass,t1.tokenkey,t1.tokentime::varchar,t1.memo,t1.isused,t1.mycode,t1.upcode,t1.headimgurl,t1.nickname,t1.birthday::varchar,t1.tokentype,t1.tokeninterval,sysoperorg.sysoperorgjson from sysinfo.operinfo t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join (select operatorid,array_to_json(array_agg(row_to_json(t))) sysoperorgjson from (select  t1.operatorid,toper.operatorname,t1.sysorgid,t2.orgname from sysinfo.sysoperorg t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join sysinfo.sysorg torg on t1.sysorgid=torg.sysorgid) t group by t.operatorid) sysoperorg on t1.operatorid=sysoperorg.operatorid where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) order by t1.operatorid limit greatest(p_rows,1) offset greatest(least((p_page-1)*p_rows,(v_c/p_rows-1+abs(v_c % p_rows))*p_rows),0) ) t;
+    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.operatorid,toper.operatorname,t1.operatorname,t1.sex,t1.phone,t1.accounts,t1.pass,t1.tokenkey,t1.tokentime::varchar,t1.memo,t1.isused,t1.mycode,t1.upcode,t1.headimgurl,t1.nickname,t1.birthday::varchar,t1.tokentype,t1.tokeninterval,sysoperorg.sysoperorgjson from sysinfo.operinfo t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join (select operatorid,array_to_json(array_agg(row_to_json(t))) sysoperorgjson from (select  t1.operatorid,t1.sysorgid,t2.orgname from sysinfo.sysoperorg t1 left join sysinfo.sysorg torg on t1.sysorgid=torg.sysorgid) t group by t.operatorid) sysoperorg on t1.operatorid=sysoperorg.operatorid where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) order by t1.operatorid limit greatest(p_rows,1) offset greatest(least((p_page-1)*p_rows,(v_c/p_rows-1+abs(v_c % p_rows))*p_rows),0) ) t;
   end if;
   return gm.returnjson(0,json_build_object('total',v_c,'rows',v_return));
 end;
@@ -856,6 +926,34 @@ $$;
 
 
 ALTER FUNCTION sysinfo.operinfoorg_query(p_token character varying, p_rows integer, p_page integer, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_isused integer, p_upcode integer, p_headimgurl text, p_nickname character varying, p_beginbirthday timestamp without time zone, p_endbirthday timestamp without time zone) OWNER TO gm;
+
+--
+-- Name: FUNCTION operinfoorg_query(p_token character varying, p_rows integer, p_page integer, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_isused integer, p_upcode integer, p_headimgurl text, p_nickname character varying, p_beginbirthday timestamp without time zone, p_endbirthday timestamp without time zone) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION operinfoorg_query(p_token character varying, p_rows integer, p_page integer, p_operatorid bigint, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_isused integer, p_upcode integer, p_headimgurl text, p_nickname character varying, p_beginbirthday timestamp without time zone, p_endbirthday timestamp without time zone)
+ IS '查询员工
+operatorid:员工编号
+operatorname:员工姓名
+sex:性别
+phone:电话
+accounts:帐号
+pass:密码
+tokenkey:令牌
+begintokentime:令牌时间
+endtokentime:令牌时间结束
+memo:备注
+isused:是否使用
+mycode:推广码
+upcode:推广上级id
+headimgurl:头像url
+nickname:昵称
+beginbirthday:生日
+endbirthday:生日结束
+tokentype:令牌类型1默认单人登录2多人登录
+tokeninterval:令牌时长默认180分钟
+返回:{"operatorid":操作员id,"operatorname":操作员姓名,"operatorname":员工姓名,"sex":性别,"phone":电话,"accounts":帐号,"pass":密码,"tokenkey":令牌,"tokentime":令牌时间,"memo":备注,"isused":使用,"mycode":推广码,"upcode":推广上级id,"headimgurl":头像url,"nickname":昵称,"birthday":生日,"tokentype":令牌类型1默认单人登录2多人登录,"tokeninterval":令牌时长默认180分钟,"operpermissionjson":{"operatorid":操作员编号,"permissiontype":权限类型1权限2角色,"params":参数,"sysactionid":系统权限编号,"permissionid":操作员权限id}';
+
 
 --
 -- Name: operinfoorg_undel(character varying, integer); Type: FUNCTION; Schema: sysinfo; Owner: gm
@@ -1032,11 +1130,11 @@ begin
   if v_check->>'errorcode'<>'0' then return v_check; end if;
 
   if p_rows is null then
-    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.operatorid,toper.operatorname,t1.operatorname,t1.sex,t1.phone,t1.accounts,t1.pass,t1.tokenkey,t1.tokentime::varchar,t1.memo,t1.isused,t1.mycode,t1.upcode,t1.headimgurl,t1.nickname,t1.birthday::varchar,t1.tokentype,t1.tokeninterval,operpermission.operpermissionjson from sysinfo.operinfo t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join (select operatorid,array_to_json(array_agg(row_to_json(t))) operpermissionjson from (select  t1.operatorid,toper.operatorname,t1.permissiontype,t1.ifpermission,t1.permissionorder,t1.params,t1.sysactionid,t1.permissionid,t1.systemid,ts.systemname from sysinfo.operpermission t1  left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join sysinfo.systeminfo ts on t1.systemid=ts.systemid and t1.systemid=(v_check->'info'->>'systemid')::integer ) t group by t.operatorid) operpermission on t1.operatorid=operpermission.operatorid where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_pass is null or position(p_pass in t1.pass )>0) and (p_tokenkey is null or position(p_tokenkey in t1.tokenkey )>0) and (p_begintokentime is null or t1.tokentime>=p_begintokentime) and (p_endtokentime is null or t1.tokentime<=p_endtokentime) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_mycode is null or p_mycode=t1.mycode) and (p_upcode is null or p_upcode=t1.upcode) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) and (p_tokentype is null or p_tokentype=t1.tokentype) and (p_tokeninterval is null or p_tokeninterval=t1.tokeninterval) order by t1.operatorid) t;
+    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.operatorid,toper.operatorname,t1.operatorname,t1.sex,t1.phone,t1.accounts,t1.pass,t1.tokenkey,t1.tokentime::varchar,t1.memo,t1.isused,t1.mycode,t1.upcode,t1.headimgurl,t1.nickname,t1.birthday::varchar,t1.tokentype,t1.tokeninterval,operpermission.operpermissionjson from sysinfo.operinfo t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join (select operatorid,array_to_json(array_agg(row_to_json(t))) operpermissionjson from (select  t1.operatorid,t1.permissiontype,t1.ifpermission,t1.permissionorder,t1.params,t1.sysactionid,t1.permissionid from sysinfo.operpermission t1) t group by t.operatorid) operpermission on t1.operatorid=operpermission.operatorid where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_pass is null or position(p_pass in t1.pass )>0) and (p_tokenkey is null or position(p_tokenkey in t1.tokenkey )>0) and (p_begintokentime is null or t1.tokentime>=p_begintokentime) and (p_endtokentime is null or t1.tokentime<=p_endtokentime) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_mycode is null or p_mycode=t1.mycode) and (p_upcode is null or p_upcode=t1.upcode) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) and (p_tokentype is null or p_tokentype=t1.tokentype) and (p_tokeninterval is null or p_tokeninterval=t1.tokeninterval) order by t1.operatorid) t;
     v_c:=coalesce(json_array_length(v_return),0);
   else
     select count(*) into v_c from sysinfo.operinfo t1 where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_pass is null or position(p_pass in t1.pass )>0) and (p_tokenkey is null or position(p_tokenkey in t1.tokenkey )>0) and (p_begintokentime is null or t1.tokentime>=p_begintokentime) and (p_endtokentime is null or t1.tokentime<=p_endtokentime) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_mycode is null or p_mycode=t1.mycode) and (p_upcode is null or p_upcode=t1.upcode) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) and (p_tokentype is null or p_tokentype=t1.tokentype) and (p_tokeninterval is null or p_tokeninterval=t1.tokeninterval);
-    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.operatorid,toper.operatorname,t1.operatorname,t1.sex,t1.phone,t1.accounts,t1.pass,t1.tokenkey,t1.tokentime::varchar,t1.memo,t1.isused,t1.mycode,t1.upcode,t1.headimgurl,t1.nickname,t1.birthday::varchar,t1.tokentype,t1.tokeninterval,operpermission.operpermissionjson from sysinfo.operinfo t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join (select operatorid,array_to_json(array_agg(row_to_json(t))) operpermissionjson from (select  t1.operatorid,toper.operatorname,t1.permissiontype,t1.ifpermission,t1.permissionorder,t1.params,t1.sysactionid,t1.permissionid,t1.systemid,ts.systemname from sysinfo.operpermission t1  left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join sysinfo.systeminfo ts on t1.systemid=ts.systemid and t1.systemid=(v_check->'info'->>'systemid')::integer ) t group by t.operatorid) operpermission on t1.operatorid=operpermission.operatorid where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_pass is null or position(p_pass in t1.pass )>0) and (p_tokenkey is null or position(p_tokenkey in t1.tokenkey )>0) and (p_begintokentime is null or t1.tokentime>=p_begintokentime) and (p_endtokentime is null or t1.tokentime<=p_endtokentime) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_mycode is null or p_mycode=t1.mycode) and (p_upcode is null or p_upcode=t1.upcode) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) and (p_tokentype is null or p_tokentype=t1.tokentype) and (p_tokeninterval is null or p_tokeninterval=t1.tokeninterval) order by t1.operatorid limit greatest(p_rows,1) offset greatest(least((p_page-1)*p_rows,(v_c/p_rows-1+abs(v_c % p_rows))*p_rows),0) ) t;
+    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.operatorid,toper.operatorname,t1.operatorname,t1.sex,t1.phone,t1.accounts,t1.pass,t1.tokenkey,t1.tokentime::varchar,t1.memo,t1.isused,t1.mycode,t1.upcode,t1.headimgurl,t1.nickname,t1.birthday::varchar,t1.tokentype,t1.tokeninterval,operpermission.operpermissionjson from sysinfo.operinfo t1 left join sysinfo.operinfo toper on t1.operatorid=toper.operatorid left join (select operatorid,array_to_json(array_agg(row_to_json(t))) operpermissionjson from (select  t1.operatorid,t1.permissiontype,t1.ifpermission,t1.permissionorder,t1.params,t1.sysactionid,t1.permissionid from sysinfo.operpermission t1 ) t group by t.operatorid) operpermission on t1.operatorid=operpermission.operatorid where  (p_operatorid is null or p_operatorid=operatorid) and (p_operatorname is null or position(p_operatorname in t1.operatorname )>0) and (p_sex is null or p_sex=t1.sex) and (p_phone is null or position(p_phone in t1.phone )>0) and (p_accounts is null or position(p_accounts in t1.accounts )>0) and (p_pass is null or position(p_pass in t1.pass )>0) and (p_tokenkey is null or position(p_tokenkey in t1.tokenkey )>0) and (p_begintokentime is null or t1.tokentime>=p_begintokentime) and (p_endtokentime is null or t1.tokentime<=p_endtokentime) and (p_memo is null or position(p_memo in t1.memo )>0) and (p_isused is null or p_isused=t1.isused) and (p_mycode is null or p_mycode=t1.mycode) and (p_upcode is null or p_upcode=t1.upcode) and (p_headimgurl is null or position(p_headimgurl in t1.headimgurl )>0) and (p_nickname is null or position(p_nickname in t1.nickname )>0) and (p_beginbirthday is null or t1.birthday>=p_beginbirthday) and (p_endbirthday is null or t1.birthday<=p_endbirthday) and (p_tokentype is null or p_tokentype=t1.tokentype) and (p_tokeninterval is null or p_tokeninterval=t1.tokeninterval) order by t1.operatorid limit greatest(p_rows,1) offset greatest(least((p_page-1)*p_rows,(v_c/p_rows-1+abs(v_c % p_rows))*p_rows),0) ) t;
   end if;
   return gm.returnjson(0,json_build_object('total',v_c,'rows',v_return));
 end;
@@ -1070,7 +1168,7 @@ beginbirthday:生日
 endbirthday:生日结束
 tokentype:令牌类型1默认单人登录2多人登录
 tokeninterval:令牌时长默认180分钟
-返回:{"operatorid":操作员id,"operatorname":操作员姓名,"operatorname":员工姓名,"sex":性别,"phone":电话,"accounts":帐号,"pass":密码,"tokenkey":令牌,"tokentime":令牌时间,"memo":备注,"isused":使用,"mycode":推广码,"upcode":推广上级id,"headimgurl":头像url,"nickname":昵称,"birthday":生日,"tokentype":令牌类型1默认单人登录2多人登录,"tokeninterval":令牌时长默认180分钟}';
+返回:{"operatorid":操作员id,"operatorname":操作员姓名,"operatorname":员工姓名,"sex":性别,"phone":电话,"accounts":帐号,"pass":密码,"tokenkey":令牌,"tokentime":令牌时间,"memo":备注,"isused":使用,"mycode":推广码,"upcode":推广上级id,"headimgurl":头像url,"nickname":昵称,"birthday":生日,"tokentype":令牌类型1默认单人登录2多人登录,"tokeninterval":令牌时长默认180分钟,"operpermissionjson":{"operatorid":操作员编号,"permissiontype":权限类型1权限2角色,"params":参数,"sysactionid":系统权限编号,"permissionid":操作员权限id}';
 
 
 --
@@ -1365,6 +1463,26 @@ $$;
 
 
 ALTER FUNCTION sysinfo.regaccount(p_code character varying, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_appid integer, p_nickname character varying, p_headimgurl character varying, p_system character varying, p_upcode character varying) OWNER TO gm;
+
+--
+-- Name: FUNCTION regaccount(p_code character varying, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_appid integer, p_nickname character varying, p_headimgurl character varying, p_system character varying, p_upcode character varying) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION regaccount(p_code character varying, p_operatorname character varying, p_sex smallint, p_phone character varying, p_accounts character varying, p_memo character varying, p_appid integer, p_nickname character varying, p_headimgurl character varying, p_system character varying, p_upcode character varying)
+ IS '注册小程序
+code:小程序电话码或者验证码
+operatorname:姓名
+sex:性别
+phone:电话，为空通过code获取
+accounts:小程序登录码
+memo:备注
+appid:小程序id
+nickname:昵称
+headimgurl:头像
+system:系统
+upcode:邀请码
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
 
 --
 -- Name: roleinfo_add(character varying, integer, character varying, character varying, json); Type: FUNCTION; Schema: sysinfo; Owner: gm
@@ -2979,7 +3097,7 @@ ALTER SEQUENCE sysinfo.operinfo_operatorid_seq OWNER TO gm;
 --
 
 CREATE  SEQUENCE operpermission_permissionid_seq
-    START WITH 101
+    START WITH 100
     INCREMENT BY 1
     MINVALUE 100
     NO MAXVALUE
