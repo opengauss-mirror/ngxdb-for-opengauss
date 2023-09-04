@@ -8,6 +8,7 @@
 
 ## 一、介绍
  本开发框架为专为opengauss开发，能完成编写代码、接口文档、单元测试、部署，可以只用纯sql语句完成全套系统从开发到部署，完全开源。
+ ngxdb for opengaus八大优势https://www.toutiao.com/article/7274971705632784907/
 文件目录
 
 |--extension  opengauss扩展
