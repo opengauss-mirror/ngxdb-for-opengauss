@@ -29,7 +29,7 @@ public:
 private slots:
     void on_pushButtonOK_clicked();
 
-    void on_pushButton_2_clicked();
+    void on_pushButtonQuit_clicked();
 
 private:
     Ui::Login *ui;

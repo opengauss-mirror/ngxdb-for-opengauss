@@ -7,6 +7,7 @@ Login::Login(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::Login)
 {
+    setWindowFlag(Qt::WindowContextHelpButtonHint, false);
     ui->setupUi(this);
 }
 
@@ -51,9 +52,10 @@ void Login::on_pushButtonOK_clicked()
             QMessageBox::information(this,QObject::tr("提示"),QObject::tr("网络出错！"),QMessageBox::Ok,QMessageBox::Ok);
         }
     }
+    free(re);
 }
 
-void Login::on_pushButton_2_clicked()
+void Login::on_pushButtonQuit_clicked()
 {
     close();
 }
