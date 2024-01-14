@@ -1,0 +1,158 @@
+<script>
+	var orgtypetableoption={
+			toolbar: '#orgtypetoolbar',//工具按钮用哪个容器
+			clickToSelect: true,// 单击行即可以选中
+			singleSelect: true, //设置true禁止多选
+			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+            showPaginationSwitch: true,
+			showExport: true,
+			exportDataType: 'all',
+			exportTypes: ['doc', 'excel'], //导出文件类型
+			showToggle: true,  //是否显示视图切换按钮
+			showRefresh: true,// 是否显示刷新按钮
+			showColumns: true,//是否显示所有的列
+			search: true, // 开启搜索功能
+			pagination: true,// 开启分页功能
+			sortName: "orgtypeid", // 设置默认排序为 name
+			columns: [{				field: "checked",				checkbox: true				}, {				field: "description",				title: "说明",				align: "center",				valign: "middle"				}, {				field: "orgtypename",				title: "部门类型名",				align: "center",				valign: "middle"				}, {				field: "orgtypeid",				title: "部门类型编号",				visible: false,				align: "center",				valign: "middle"				}, {				field: "isused",				title: "显示",				align: "center",				formatter : function (value, row, index) { switch(value) {case 1 :return "是"; default : return "否"}},				valign: "middle"			}],
+			onlClickCell: function (field,value,row) {
+					row.checked=true;
+			},
+			onCheck: function (row) {
+				if (actions.includes("121")) {
+					orgtypeEditTable(row);
+				}
+			}
+		}
+
+	$(function() {
+		checkaction(new Array("120","121","123","124"));
+
+		$("#orgtypeQueryTable").bootstrapTable(orgtypetableoption);
+		$("#orgtypeQueryTable").bootstrapTable('showLoading');
+
+		orgtypeQueryTable();
+		$(".selectpicker").selectpicker("refresh");
+		$("#orgtypemyModal").on("shown.bs.modal",function(e){ if ($("#txt_orgtypeid").attr("disabled")) { $("#txt_SaveModal").focus() } else {$("#txt_orgtypeid").focus()}; });
+	});
+	
+	function orgtypeAddTable() {//新增
+		$("#txt_description").val("");		$("#txt_orgtypename").val("");		$("#txt_orgtypeid").val("");		$("#txt_orgtypeid").attr("disabled",false);
+        $("#orgtypemyModalLabel").html("新增");
+        
+	};
+	
+	function orgtypeEditTable(row) {
+		if (row==null) {
+			if ($("#orgtypeQueryTable").bootstrapTable('getSelections').length == 0) {
+				alert("请先选择要修改的数据!");
+				return;
+			};
+			row=$("#orgtypeQueryTable").bootstrapTable('getSelections')[0];
+		}
+		if (row.description!=null) { $("#txt_description").val(row.description) } else { $("#txt_description").val("")};		if (row.orgtypename!=null) { $("#txt_orgtypename").val(row.orgtypename) } else { $("#txt_orgtypename").val("")};		if (row.orgtypeid!=null) { $("#txt_orgtypeid").val(row.orgtypeid) } else { $("#txt_orgtypeid").val("")};		$("#txt_orgtypeid").attr("disabled",true);
+        $("#orgtypemyModalLabel").html("修改");
+        
+	};
+	
+	function orgtypeCommitTable() {
+		var orgtypecommitdata={
+			description:$("#txt_description").val(),			orgtypename:$("#txt_orgtypename").val(),			orgtypeid:$("#txt_orgtypeid").val(),			token:token
+		};
+		if ($("#orgtypemyModalLabel").html()=="新增") {
+			ajaxarr([{
+				url:"sysinfo/orgtype_add",
+				title:"新增数据失败！",
+				data:orgtypecommitdata,
+				func:function(data) {
+					alert("新增数据成功！id："+data.id);
+					orgtypeQueryTable(data.orgtypeid);
+					orgtypeAddTable();
+				}
+			}]);
+		} else {
+			ajaxarr([{
+				url:"sysinfo/orgtype_edit",
+				title:"修改数据失败！",
+				data:orgtypecommitdata,
+				func:function(data) {
+					alert("修改数据成功！");
+					orgtypeQueryTable(orgtypecommitdata.orgtypeid);
+					
+				}
+			}]);		
+		};
+	};
+	
+	function orgtypeDelTable() {
+        var row = $("#orgtypeQueryTable").bootstrapTable('getSelections')[0];
+        if(row == null) {
+            alert("请先选择要显示/隐藏的数据!");
+            return;
+        };       
+		var info=(row.isused==0) ? "显示" : "隐藏";
+		if(confirm( "您真的确定要"+info+"显示/隐藏吗？") == true) {
+			ajaxarr([{
+				url: "sysinfo/orgtype_del" ,
+				title: info+"数据失败！",
+				data:{token:token,orgtypeid : row.orgtypeid , isused : (row.isused==0) ? 1 : null},
+				func: function(data) {
+					alert(info+"成功！");
+                    orgtypeQueryTable();
+				}
+			}]);
+		}
+	};
+	
+	function orgtypeQueryTable(id) {
+		$("#orgtypeQueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"sysinfo/orgtype_query",
+				title:"获取部门类型信息失败，请刷新！",
+				data:{token:token},
+				func: function (data) {
+					if (data.info.total==0) { $("#orgtypeQueryTable").bootstrapTable("destroy").bootstrapTable(orgtypetableoption); } 
+					else {	
+						$("#orgtypeQueryTable").bootstrapTable('load', data.info.rows); 
+						if (id) {
+							for (var i=data.info.total;i>0;i--) {
+								if (data.info.rows[i-1].orgtypeid==id) {
+									$("#orgtypeQueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#orgtypeQueryTable").bootstrapTable('getOptions').pageSize));
+									$("#orgtypeQueryTable").bootstrapTable('checkBy',{field:'orgtypeid',values:[data.info.rows[i-1].orgtypeid]})
+									break;
+								};							
+							}
+						} else {
+							$("#orgtypeQueryTable").bootstrapTable('checkBy',{field:'orgtypeid',values:[data.info.rows[0].orgtypeid]})
+							orgtypeEditTable(data.info.rows[0]);
+						}
+					};
+					$("#orgtypeQueryTable").bootstrapTable('hideLoading');
+				}
+		}]);		
+	};
+</script>
+<table id="orgtypeQueryTable" class='table-striped'></table>
+<div id="orgtypetoolbar" class="btn-group">
+	<button id="120" type="button" style="display:none;" class="btn btn-default" onclick="orgtypeAddTable()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>新增</button>
+	<button id="121" type="button" style="display:none;" class="btn btn-default" onclick="orgtypeEditTable()"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改</button>
+	<button id="123" type="button" style="display:none;" class="btn btn-default" onclick="orgtypeDelTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>显示/隐藏</button>
+	<button id="124" type="button" style="display:none;" class="btn btn-default" onclick="orgtypeQueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
+</div>
+<div class="row" id="orgtypemyModal" tabindex="-1" >
+	<div class="col-12" >
+		<div class="modal-content" >
+			<div class="modal-header">
+				<h4 class="modal-title" id="orgtypemyModalLabel">新增</h4>
+				
+			</div>
+			<div class="modal-body form-inline">
+				<label for="txt_description" class="col-lg-3 text-center">说明</label><input id="txt_description" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_orgtypename.focus()}}" type="text" placeholder="说明"/>				<label for="txt_orgtypename" class="col-lg-3 text-center">部门类型名</label><input id="txt_orgtypename" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_orgtypeid.focus()}}" type="text" placeholder="部门类型名"/>				<label for="txt_orgtypeid" class="col-lg-3 text-center">部门类型编号</label><input id="txt_orgtypeid" class="form-control col-lg-3" disabled="disabled" onkeypress="{ if (event.keyCode==13) {SaveModal.focus()}}" type="text" placeholder="部门类型编号"/>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal" onclick="orgtypeAddTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>清空</button>
+				<button type="button" class="btn btn-primary" id="orgtypeSaveModal" onclick="orgtypeCommitTable()"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+			</div>
+		</div>
+	</div>
+</div>

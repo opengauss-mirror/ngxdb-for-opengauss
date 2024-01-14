@@ -1,0 +1,192 @@
+<script>
+	var operinfotableoption={
+			toolbar: '#operinfotoolbar',//工具按钮用哪个容器
+			clickToSelect: true,// 单击行即可以选中
+			singleSelect: true, //设置true禁止多选
+			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+            showPaginationSwitch: true,
+			showExport: true,
+			exportDataType: 'all',
+			exportTypes: ['doc', 'excel'], //导出文件类型
+			showToggle: true,  //是否显示视图切换按钮
+			showRefresh: true,// 是否显示刷新按钮
+			showColumns: true,//是否显示所有的列
+			search: true, // 开启搜索功能
+			pagination: true,// 开启分页功能
+			sortName: "operatorid", // 设置默认排序为 name
+			columns: [{				field: "checked",				checkbox: true				}, {				field: "deltime",				title: "删除时间",				align: "center",				valign: "middle"				}, {				field: "deloperator",				title: "删除人员",				visible: false,				align: "center",				valign: "middle"				}, {				field: "deloperatorname",				title: "删除人员",				align: "center",				valign: "middle"				}, {				field: "updatetime",				title: "修改时间",				align: "center",				valign: "middle"				}, {				field: "updateoperator",				title: "修改人员",				visible: false,				align: "center",				valign: "middle"				}, {				field: "updateoperatorname",				title: "修改人员",				align: "center",				valign: "middle"				}, {				field: "createtime",				title: "创建时间",				align: "center",				valign: "middle"				}, {				field: "createoperator",				title: "创建人员",				visible: false,				align: "center",				valign: "middle"				}, {				field: "createoperatorname",				title: "创建人员",				align: "center",				valign: "middle"				}, {				field: "tokeninterval",				title: "令牌时长默认180分钟",				align: "center",				valign: "middle"				}, {				field: "tokentype",				title: "令牌类型1默认单人登录2多人登录",				align: "center",				valign: "middle"				}, {				field: "birthday",				title: "生日",				align: "center",				valign: "middle"				}, {				field: "nickname",				title: "昵称",				align: "center",				valign: "middle"				}, {				field: "headimgurl",				title: "头像url",				align: "center",				valign: "middle"				}, {				field: "upcode",				title: "推广上级id",				align: "center",				valign: "middle"				}, {				field: "mycode",				title: "推广码",				align: "center",				valign: "middle"				}, {				field: "isused",				title: "使用",				align: "center",				formatter : function (value, row, index) { switch(value) {case 1 :return "是"; default : return "否"}},				valign: "middle"				}, {				field: "memo",				title: "备注",				align: "center",				valign: "middle"				}, {				field: "tokentime",				title: "令牌时间",				align: "center",				valign: "middle"				}, {				field: "tokenkey",				title: "令牌",				align: "center",				valign: "middle"				}, {				field: "pass",				title: "密码",				align: "center",				valign: "middle"				}, {				field: "accounts",				title: "帐号",				align: "center",				valign: "middle"				}, {				field: "phone",				title: "电话",				align: "center",				valign: "middle"				}, {				field: "sex",				title: "性别",				align: "center",				valign: "middle"				}, {				field: "operatorname",				title: "员工姓名",				align: "center",				valign: "middle"				}, {				field: "operatorid",				title: "员工编号",				visible: false,				visible: false,				align: "center",				valign: "middle"				}, {				field: "operatoridname",				title: "员工编号",				align: "center",				valign: "middle"			}],
+			onlClickCell: function (field,value,row) {
+					row.checked=true;
+			},
+			onCheck: function (row) {
+				if (actions.includes("127")) {
+					console.log(row)
+					switch(row.isused) {
+						case 0:$("#129").text("显示");break;
+						case 1:$("#129").text("隐藏");break;
+						default:$("#129").text("显示");break;
+					}
+					operinfoEditTable(row);
+				}
+			}
+		}
+
+	$(function() {
+		checkaction(new Array("126","127","129","130"));
+		laydate.render({			elem: '#txt_tokentime',			type: 'datetime',			value: new Date()		});		laydate.render({			elem: '#txt_birthday',			type: 'datetime',			value: new Date()		});		laydate.render({			elem: '#txt_createtime',			type: 'datetime',			value: new Date()		});		laydate.render({			elem: '#txt_updatetime',			type: 'datetime',			value: new Date()		});		laydate.render({			elem: '#txt_deltime',			type: 'datetime',			value: new Date()		});
+		$("#operinfoQueryTable").bootstrapTable(operinfotableoption);
+		$("#operinfoQueryTable").bootstrapTable('showLoading');
+
+		operinfoQueryTable();
+		$(".selectpicker").selectpicker("refresh");
+		$("#operinfomyModal").on("shown.bs.modal",function(e){ if ($("#txt_operatorid").attr("disabled")) { $("#txt_SaveModal").focus() } else {$("#txt_operatorid").focus()}; });
+	});
+	
+	function operinfoAddTable() {//新增
+		$("#txt_createtime").val("");		$("#txt_tokeninterval").val("");		$("#txt_tokentype").val("");		$("#txt_birthday").val("");		$("#txt_nickname").val("");		$("#txt_headimgurl").val("");		$("#txt_upcode").val("");		$("#txt_mycode").val("");		$("#txt_memo").val("");		$("#txt_tokentime").val("");		$("#txt_tokenkey").val("");		$("#txt_pass").val("");		$("#txt_accounts").val("");		$("#txt_phone").val("");		$("#txt_sex").val("");		$("#txt_operatorname").val("");		$("#txt_operatorid").attr("disabled",false);
+        $("#operinfomyModalLabel").html("新增");
+        
+	};
+	
+	function operinfoEditTable(row) {
+		if (row==null) {
+			if ($("#operinfoQueryTable").bootstrapTable('getSelections').length == 0) {
+				alert("请先选择要修改的数据!");
+				return;
+			};
+			row=$("#operinfoQueryTable").bootstrapTable('getSelections')[0];
+		}
+		if (row.createtime!=null) { $("#txt_createtime").val(row.createtime) } else { $("#txt_createtime").val("")};		if (row.tokeninterval!=null) { $("#txt_tokeninterval").val(row.tokeninterval) } else { $("#txt_tokeninterval").val("")};		if (row.tokentype!=null) { $("#txt_tokentype").val(row.tokentype) } else { $("#txt_tokentype").val("")};		if (row.birthday!=null) { $("#txt_birthday").val(row.birthday) } else { $("#txt_birthday").val("")};		if (row.nickname!=null) { $("#txt_nickname").val(row.nickname) } else { $("#txt_nickname").val("")};		if (row.headimgurl!=null) { $("#txt_headimgurl").val(row.headimgurl) } else { $("#txt_headimgurl").val("")};		if (row.upcode!=null) { $("#txt_upcode").val(row.upcode) } else { $("#txt_upcode").val("")};		if (row.mycode!=null) { $("#txt_mycode").val(row.mycode) } else { $("#txt_mycode").val("")};		if (row.memo!=null) { $("#txt_memo").val(row.memo) } else { $("#txt_memo").val("")};		if (row.tokentime!=null) { $("#txt_tokentime").val(row.tokentime) } else { $("#txt_tokentime").val("")};		if (row.tokenkey!=null) { $("#txt_tokenkey").val(row.tokenkey) } else { $("#txt_tokenkey").val("")};		if (row.pass!=null) { $("#txt_pass").val(row.pass) } else { $("#txt_pass").val("")};		if (row.accounts!=null) { $("#txt_accounts").val(row.accounts) } else { $("#txt_accounts").val("")};		if (row.phone!=null) { $("#txt_phone").val(row.phone) } else { $("#txt_phone").val("")};		if (row.sex!=null) { $("#txt_sex").val(row.sex) } else { $("#txt_sex").val("")};		if (row.operatorname!=null) { $("#txt_operatorname").val(row.operatorname) } else { $("#txt_operatorname").val("")};		$("#txt_operatorid").attr("disabled",true);
+        $("#operinfomyModalLabel").html("修改");
+        
+	};
+	
+	function operinfoCommitTable() {
+		var operinfocommitdata={
+			createtime:$("#txt_createtime").val(),			tokeninterval:$("#txt_tokeninterval").val(),			tokentype:$("#txt_tokentype").val(),			birthday:$("#txt_birthday").val(),			nickname:$("#txt_nickname").val(),			headimgurl:$("#txt_headimgurl").val(),			upcode:$("#txt_upcode").val(),			mycode:$("#txt_mycode").val(),			memo:$("#txt_memo").val(),			tokentime:$("#txt_tokentime").val(),			tokenkey:$("#txt_tokenkey").val(),			pass:$("#txt_pass").val(),			accounts:$("#txt_accounts").val(),			phone:$("#txt_phone").val(),			sex:$("#txt_sex").val(),			operatorname:$("#txt_operatorname").val(),			token:token
+		};
+		if ($("#operinfomyModalLabel").html()=="新增") {
+			ajaxarr([{
+				url:"sysinfo/operinfo_add",
+				title:"新增数据失败！",
+				data:operinfocommitdata,
+				func:function(data) {
+					alert("新增数据成功！id："+data.id);
+					operinfoQueryTable(data.operatorid);
+					operinfoAddTable();
+				}
+			}]);
+		} else {
+			ajaxarr([{
+				url:"sysinfo/operinfo_edit",
+				title:"修改数据失败！",
+				data:operinfocommitdata,
+				func:function(data) {
+					alert("修改数据成功！");
+					operinfoQueryTable(operinfocommitdata.operatorid);
+					
+				}
+			}]);		
+		};
+	};
+	
+	function operinfoDelTable() {
+        var row = $("#operinfoQueryTable").bootstrapTable('getSelections')[0];
+        if(row == null) {
+            alert("请先选择要删除的数据!");
+            return;
+        };       
+		switch(row.isused) {
+		    case 0:
+				if(confirm( "您真的确定要恢复吗？") == true) {
+					ajaxarr([{
+						url: "sysinfo/operinfo_undel" ,
+						title: info+"数据失败！",
+						data:{token:token,operatorid : row.operatorid },
+						func: function(data) {
+							alert("恢复成功！");
+							operinfoQueryTable();
+						}
+					}]);
+				}
+				break;
+            case 1:
+				if(confirm( "您真的确定要隐藏吗？") == true) {
+					ajaxarr([{
+						url: "sysinfo/operinfo_del" ,
+						title: info+"数据失败！",
+						data:{token:token,operatorid : row.operatorid },
+						func: function(data) {
+							alert("隐藏成功！");
+							operinfoQueryTable();
+						}
+					}]);
+				}
+				break;
+			default:
+				if(confirm( "您真的确定要删除吗？") == true) {
+					ajaxarr([{
+						url: "sysinfo/operinfo_del" ,
+						title: info+"数据失败！",
+						data:{token:token,operatorid : row.operatorid },
+						func: function(data) {
+							alert(info+"成功！");
+							operinfoQueryTable();
+						}
+					}]);
+				}
+		}
+	};
+	
+	function operinfoQueryTable(id) {
+		$("#operinfoQueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"sysinfo/operinfo_query",
+				title:"获取员工信息失败，请刷新！",
+				data:{token:token},
+				func: function (data) {
+					if (data.info.total==0) { $("#operinfoQueryTable").bootstrapTable("destroy").bootstrapTable(operinfotableoption); } 
+					else {	
+						$("#operinfoQueryTable").bootstrapTable('load', data.info.rows); 
+						if (id) {
+							for (var i=data.info.total;i>0;i--) {
+								if (data.info.rows[i-1].operatorid==id) {
+									$("#operinfoQueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#operinfoQueryTable").bootstrapTable('getOptions').pageSize));
+									$("#operinfoQueryTable").bootstrapTable('checkBy',{field:'operatorid',values:[data.info.rows[i-1].operatorid]})
+									break;
+								};							
+							}
+						} else {
+							$("#operinfoQueryTable").bootstrapTable('checkBy',{field:'operatorid',values:[data.info.rows[0].operatorid]})
+							operinfoEditTable(data.info.rows[0]);
+						}
+					};
+					$("#operinfoQueryTable").bootstrapTable('hideLoading');
+				}
+		}]);		
+	};
+</script>
+<table id="operinfoQueryTable" class='table-striped'></table>
+<div id="operinfotoolbar" class="btn-group">
+	<button id="126" type="button" style="display:none;" class="btn btn-default" onclick="operinfoAddTable()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>新增</button>
+	<button id="127" type="button" style="display:none;" class="btn btn-default" onclick="operinfoEditTable()"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改</button>
+	<button id="129" type="button" style="display:none;" class="btn btn-default" onclick="operinfoDelTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>删除</button>
+	<button id="130" type="button" style="display:none;" class="btn btn-default" onclick="operinfoQueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
+</div>
+<div class="row" id="operinfomyModal" tabindex="-1" >
+	<div class="col-12" >
+		<div class="modal-content" >
+			<div class="modal-header">
+				<h4 class="modal-title" id="operinfomyModalLabel">新增</h4>
+				
+			</div>
+			<div class="modal-body form-inline">
+				<label for="txt_createtime" class="col-lg-3 text-center">创建时间</label><input id="txt_createtime" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_createoperator.focus()}}" type="text" placeholder="创建时间"/>				<label for="txt_tokeninterval" class="col-lg-3 text-center">令牌时长默认180分钟</label><input id="txt_tokeninterval" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_tokentype.focus()}}" type="text" placeholder="令牌时长默认180分钟"/>				<label for="txt_tokentype" class="col-lg-3 text-center">令牌类型1默认单人登录2多人登录</label><input id="txt_tokentype" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_birthday.focus()}}" type="text" placeholder="令牌类型1默认单人登录2多人登录"/>				<label for="txt_birthday" class="col-lg-3 text-center">生日</label><input id="txt_birthday" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_nickname.focus()}}" type="text" placeholder="生日"/>				<label for="txt_nickname" class="col-lg-3 text-center">昵称</label><input id="txt_nickname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_headimgurl.focus()}}" type="text" placeholder="昵称"/>				<label for="txt_headimgurl" class="col-lg-3 text-center">头像url</label><input id="txt_headimgurl" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_upcode.focus()}}" type="text" placeholder="头像url"/>				<label for="txt_upcode" class="col-lg-3 text-center">推广上级id</label><input id="txt_upcode" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_mycode.focus()}}" type="text" placeholder="推广上级id"/>				<label for="txt_mycode" class="col-lg-3 text-center">推广码</label><input id="txt_mycode" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_memo.focus()}}" type="text" placeholder="推广码"/>				<label for="txt_memo" class="col-lg-3 text-center">备注</label><input id="txt_memo" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_tokentime.focus()}}" type="text" placeholder="备注"/>				<label for="txt_tokentime" class="col-lg-3 text-center">令牌时间</label><input id="txt_tokentime" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_tokenkey.focus()}}" type="text" placeholder="令牌时间"/>				<label for="txt_tokenkey" class="col-lg-3 text-center">令牌</label><input id="txt_tokenkey" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_pass.focus()}}" type="text" placeholder="令牌"/>				<label for="txt_pass" class="col-lg-3 text-center">密码</label><input id="txt_pass" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_accounts.focus()}}" type="text" placeholder="密码"/>				<label for="txt_accounts" class="col-lg-3 text-center">帐号</label><input id="txt_accounts" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_phone.focus()}}" type="text" placeholder="帐号"/>				<label for="txt_phone" class="col-lg-3 text-center">电话</label><input id="txt_phone" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_sex.focus()}}" type="text" placeholder="电话"/>				<label for="txt_sex" class="col-lg-3 text-center">性别</label><input id="txt_sex" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_operatorname.focus()}}" type="text" placeholder="性别"/>				<label for="txt_operatorname" class="col-lg-3 text-center">员工姓名</label><input id="txt_operatorname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_operatorid.focus()}}" type="text" placeholder="员工姓名"/>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal" onclick="operinfoAddTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>清空</button>
+				<button type="button" class="btn btn-primary" id="operinfoSaveModal" onclick="operinfoCommitTable()"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+			</div>
+		</div>
+	</div>
+</div>

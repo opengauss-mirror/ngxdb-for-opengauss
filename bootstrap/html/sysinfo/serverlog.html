@@ -1,0 +1,118 @@
+<script>
+	$(function() {
+		checkaction(new Array("261"));
+		$("#QueryTable").bootstrapTable({
+			toolbar: '#toolbar',//工具按钮用哪个容器
+			clickToSelect: true,// 单击行即可以选中
+			singleSelect: true, //设置true禁止多选
+			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+			showExport: true,
+			exportDataType: 'all',
+			exportTypes: ['doc', 'excel'], //导出文件类型
+			showToggle: true,  //是否显示视图切换按钮
+			showRefresh: true,// 是否显示刷新按钮
+			showColumns: true,//是否显示所有的列
+			search: true, // 开启搜索功能
+			pagination: true,// 开启分页功能
+			sortName: "logid", // 设置默认排序为 name
+			columns: [{
+				field: "checked",
+				checkbox: true
+				}, {
+				field: "logid",
+				title: "日志编号",
+				visible: false,
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "clientip",
+				title: "客户地址",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "pckname",
+				title: "分类名",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "funcname",
+				title: "功能名",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "content",
+				title: "内容",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "logtime",
+				title: "日志时间",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "serverip",
+				title: "服务器地址",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "operatorid",
+				title: "操作员编号",
+				align: "center",
+				valign: "middle"
+			}],
+			onDblClickRow: function (row) {
+				if (actions.includes("")) {
+					row.checked=true;
+					EditTable(row);
+				}
+			}
+		});
+		$("#QueryTable").bootstrapTable('showLoading');
+		QueryTable();
+		laydate.render({
+			elem: '#endlogtime',
+			type: 'datetime'
+		});
+		laydate.render({
+			elem: '#beginlogtime',
+			type: 'datetime'
+		});
+		$("#myModal").on("shown.bs.modal",function(e){ if ($("#txt_logid").attr("disabled")) { $("#txt_txt_clientip").focus() } else {$("#txt_logid").focus()}; });
+	});
+	
+	function QueryTable(id) {
+		$("#QueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"/func/public/serverlog1_query?operatorno=" + employeeno + "&token=" + token,
+				title:"获取系统日志信息失败，请刷新！",
+				data:{
+					beginlogtime:$("#beginlogtime").val(),
+					endlogtime:$("#endlogtime").val()
+				},
+				func: function (data) {
+					$("#QueryTable").bootstrapTable('hideLoading');
+					if (data.total==0) { $("#QueryTable").bootstrapTable('removeAll'); } 
+					else {	
+						$("#QueryTable").bootstrapTable('load', data.rows); 
+						if (id) {
+							for (var i=data.total;i>0;i--) {
+								if (data.rows[i-1].logid==id) {
+									$("#QueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#QueryTable").bootstrapTable('getOptions').pageSize));
+									break;
+								};							
+							}
+						}
+					};
+				}
+		}]);		
+	};
+</script>
+<div class="form-inline">
+	<label for="operatorid" class="col-1 form-control">操作员编号：</label><input id="operatorid" type="text" class="col-2 form-control" placeholder="请输入操作员编号">
+	<label for="beginlogtime" class="col-1 form-control">开始时间：</label>	<input id="beginlogtime" class="col-2 form-control">
+	<label for="endlogtime" class="col-1 form-control">结束时间：</label><input id="endlogtime" class="col-2 form-control">
+</div>
+<table id="QueryTable" class='table-striped'></table>
+<div id="toolbar" class="btn-group">
+	<button id="261" type="button" style="display:none;" class="btn btn-default" onclick="QueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
+</div>

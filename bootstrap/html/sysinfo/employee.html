@@ -1,0 +1,361 @@
+<script>
+	var roleoption={
+			clickToSelect: true,// 单击行即可以选中
+			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+			showExport: true,
+			exportDataType: 'all',
+			exportTypes: ['doc', 'excel'], //导出文件类型
+			showToggle: true,  //是否显示视图切换按钮
+			showRefresh: true,// 是否显示刷新按钮
+			showColumns: true,//是否显示所有的列
+			search: true, // 开启搜索功能
+			sortName: "roleinfoid", // 设置默认排序为 name
+			columns: [{
+				field: "checked",
+				checkbox: true
+				}, {
+				field: "roleinfoid",
+				title: "角色编号",
+				visible: false,
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "roleinfoname",
+				title: "角色名",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "description",
+				title: "描述",
+				align: "center",
+				valign: "middle"
+			}]
+		};
+	var tableoption={
+			toolbar: '#toolbar',//工具按钮用哪个容器
+			clickToSelect: true,// 单击行即可以选中
+			singleSelect: true, //设置true禁止多选
+			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+			showExport: true,
+			exportDataType: 'all',
+			exportTypes: ['doc', 'excel'], //导出文件类型
+			showToggle: true,  //是否显示视图切换按钮
+			showRefresh: true,// 是否显示刷新按钮
+			showColumns: true,//是否显示所有的列
+			search: true, // 开启搜索功能
+			pagination: true,// 开启分页功能
+			sortName: "employeeid", // 设置默认排序为 name
+			columns: [{
+				field: "checked",
+				checkbox: true
+				}, {
+				field: "employeeid",
+				title: "员工编号",
+				visible: false,
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "employeename",
+				title: "员工姓名",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "sex",
+				title: "性别",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "phone",
+				title: "电话",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "accounts",
+				title: "帐号",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "memo",
+				title: "备注",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "isused",
+				title: "使用",
+				align: "center",
+				formatter : function (value, row, index) { switch(value) {case 1 :return "是"; default : return "否"}},
+				valign: "middle"
+				}, {
+				field: "orgid",
+				title: "部门编号",
+				visible: false,
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "orgname",
+				title: "部门名称",
+				align: "center",
+				valign: "middle"
+			}],
+			onDblClickRow: function (row) {
+				if (actions.includes("104")) {
+					row.checked=true;
+					EditTable(row);
+				}
+			},
+		};
+	$(function() {
+		checkaction(new Array("103","104","105","106"));		
+		$("#QueryTable").bootstrapTable(tableoption);
+		$("#QueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"/func/operator/org_query?operatorno="+employeeno+"&token="+token+"&isused=1",
+				title:"获取部门信息失败！",
+				func: function(data) {
+					setting={view: {selectedMulti: false,showIcon: true },
+						data: {	key: { name: "orgname"}, simpleData: {	enable: true,	idKey: "orgid",	pIdKey: "upid",	rootPId: 0}	},
+						onDblClick: function(event, treeId, treeNode) {
+							$("#txt_orgid").val(treeNode.orgname);
+							$("#txt_orgid").data("value",treeNode.orgid);
+							$("#orgidModal").modal("hide");
+						}
+					}
+					$.fn.zTree.init($("#Tree_orgid"),setting , data.rows);	
+				}
+			} , {
+				url:"/func/operator/action_query?operatorno="+employeeno+"&token="+token+"&isused=1",
+				title:"获取权限名信息失败！",
+				func: function(data) {
+					setting={view: {selectedMulti: true,showIcon: true },
+						check: { enable :true , chkStyle: "checkbox", chkboxType : {"Y" :"ps","N":"ps"} },
+						data: {	key: { name: "actionname"}, simpleData: {	enable: true,	idKey: "actionid",	pIdKey: "upid",	rootPId: 0}	},
+						onDblClick: function(event, treeId, treeNode) {
+							$("#detail_actionid").val(treeNode.actionname);
+							$("#detail_actionid").data("value",treeNode.actionid);
+							$("#actionidModal").modal("hide");
+						}
+					}
+					$.fn.zTree.init($("#Tree_actionid"),setting , data.rows);	
+				}
+			} , {
+				url:"/func/operator/roleinfo_queryjson?operatorno=" + employeeno + "&token=" + token + "&isused=1",
+				title:"获取角色信息失败，请刷新！",
+				func: function (data) {
+					$("#RoleTable").bootstrapTable("destroy").bootstrapTable(roleoption);
+					if (data.total>0) { $("#RoleTable").bootstrapTable("load",data.rows); } 
+				}
+		}]);
+		QueryTable();
+		$('#orgidModal').on('hidden.bs.modal', function(e) { $("body").addClass("modal-open");  });
+		$("#myModal").on("shown.bs.modal",function(e){ if ($("#txt_employeeid").attr("disabled")) { $("#txt_txt_employeename").focus() } else {$("#txt_employeeid").focus()}; });
+	});
+	
+	function AddTable() {//新增
+		$("#txt_employeeid").val("");
+		$("#txt_employeeid").attr("disabled",false);
+		$("#txt_employeename").val("");
+		$("#txt_sex").val("");
+		$("#txt_phone").val("");
+		$("#txt_accounts").val("");
+		$("#txt_memo").val("");
+		$("#txt_orgid").val("");$("#txtorgid").data("value","");
+		zTree=$.fn.zTree.getZTreeObj("Tree_actionid");
+		zTree.checkAllNodes(false);
+		zTree.expandAll(false);
+		$("#RoleTable").bootstrapTable('uncheckAll');
+        $("#myModalLabel").html("新增");
+        $("#myModal").modal();
+	};
+	
+	function EditTable(row) {
+		if (row==null) {
+			if ($("#QueryTable").bootstrapTable('getSelections').length == 0) {
+				alert("请先选择要修改的数据!");
+				return;
+			};
+			row=$("#QueryTable").bootstrapTable('getSelections')[0];
+		}
+		if (row.employeeid!=null) { $("#txt_employeeid").val(row.employeeid) } else { $("#txt_employeeid").val("")};
+		$("#txt_employeeid").attr("disabled",true);
+		if (row.employeename!=null) { $("#txt_employeename").val(row.employeename) } else { $("#txt_employeename").val("")};
+		if (row.sex!=null) { $("#txt_sex").val(row.sex) } else { $("#txt_sex").val("")};
+		if (row.phone!=null) { $("#txt_phone").val(row.phone) } else { $("#txt_phone").val("")};
+		if (row.accounts!=null) { $("#txt_accounts").val(row.accounts) } else { $("#txt_accounts").val("")};
+		if (row.memo!=null) { $("#txt_memo").val(row.memo) } else { $("#txt_memo").val("")};
+		if (row.orgid!=null) {
+			if (row.upid!=0) {
+				expendp($.fn.zTree.getZTreeObj("Tree_orgid"),$.fn.zTree.getZTreeObj("Tree_orgid").getNodeByParam("orgid",row.orgid));
+				$.fn.zTree.getZTreeObj("Tree_orgid").selectNode($.fn.zTree.getZTreeObj("Tree_orgid").getNodeByParam("orgid",row.orgid),true);
+			};
+			$("#txt_orgid").val(row.orgname);
+			$("#txt_orgid").data("value",row.orgid);
+		} else {
+			$("#txt_orgid").val("");
+			$("#txt_orgid").data("value","");
+		};
+		var zTree=$.fn.zTree.getZTreeObj("Tree_actionid");
+		zTree.checkAllNodes(false);
+		zTree.expandAll(false);
+		$("#RoleTable").bootstrapTable('uncheckAll');
+		if (row.detail!=null) {
+			var detail=JSON.parse(JSON.stringify(row.detail))
+			for (var i=0,j=detail.length;i<j; i++) {
+				if (detail[i].permissiontype==1) {
+					var getnode=zTree.getNodeByParam("actionid",detail[i].actionid);
+					if (getnode!=null) {
+						zTree.checkNode(getnode,true,true);
+						expendp(zTree,getnode);
+					}
+				} else {
+					$("#RoleTable").bootstrapTable("checkBy",{field:"roleinfoid",values:[detail[i].actionid]});
+				}
+			};
+		};
+		$("#myModalLabel").html("修改");
+        $("#myModal").modal();
+	};
+	
+	function CommitTable() {
+		var node=$.fn.zTree.getZTreeObj("Tree_actionid").getCheckedNodes(true);
+		var detail=[];
+		for (var i=0,j=node.length;i<j;i++) {
+			if (node[i].getCheckStatus().half) { continue };
+			if (node[i].getParentNode()===null) { detail.push({permissiontype:1,actionid:node[i].actionid});continue };
+			if ((node[i].getParentNode().checked) && (!node[i].getParentNode().getCheckStatus().half)) { continue };
+			detail.push({permissiontype:1,actionid:node[i].actionid});	
+		};
+		var select=$("#RoleTable").bootstrapTable('getSelections');
+		for (var i=0,j=select.length;i<j;i++) {
+			detail.push({permissiontype:2,actionid:select[i].roleinfoid});
+		};
+		var commitdata={
+			employeeid:$("#txt_employeeid").val(),
+			employeename:$("#txt_employeename").val(),
+			sex:$("#txt_sex").val(),
+			phone:$("#txt_phone").val(),
+			accounts:$("#txt_accounts").val(),
+			memo:$("#txt_memo").val(),
+			orgid:$("#txt_orgid").data("value"),
+			detail:JSON.stringify(detail)
+		};
+		if ($("#myModalLabel").html()=="新增") {
+			ajaxarr([{
+				url:"/func/operator/employee_addjson?operatorno="+employeeno+"&token="+token,
+				title:"新增数据失败！",
+				data:commitdata,
+				func:function(data) {
+					alert("新增数据成功！id："+data.id);
+					QueryTable(data.id);
+				}
+			}]);
+		} else {
+			ajaxarr([{
+				url:"/func/operator/employee_editjson?operatorno="+employeeno+"&token="+token,
+				title:"修改数据失败！",
+				data:commitdata,
+				func:function(data) {
+					alert("修改数据成功！");
+					QueryTable(commitdata.employeeid);
+				}
+			}]);		
+		};
+	};
+	
+	function DelTable() {
+		var row=$("#QueryTable").bootstrapTable('getSelections')[0];
+		if (row==null) {
+			alert("请先选择要显示/隐藏的数据!");
+			return;
+		}
+		var info=(row.isused==0) ? "显示" : "隐藏" ;
+		if(confirm( "您真的确定要"+info+"吗？") == true) {
+			ajaxarr([{
+				url: "/func/operator/employee_deljson?operatorno=" + employeeno + "&token=" + token,
+				title: info + "数据失败！",
+				data:{employeeid:row.employeeid,isused:(row.isused==0) ? 1 : null},
+				func: function(data) {
+					alert(info+"成功！");
+                    QueryTable();
+				}
+			}]);
+		}
+	};
+	
+	function QueryTable(id) {
+		$("#QueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"/func/operator/employee_queryjson?operatorno=" + employeeno + "&token=" + token,
+				title:"获取员工信息失败，请刷新！",
+				data:{},
+				func: function (data) {
+					$("#QueryTable").bootstrapTable('hideLoading');
+					if (data.total==0) { $("#QueryTable").bootstrapTable('removeAll'); } 
+					else {	
+						$("#QueryTable").bootstrapTable('load', data.rows); 
+						if (id) {
+							for (var i=data.total;i>0;i--) {
+								if (data.rows[i-1].employeeid==id) {
+									$("#QueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#QueryTable").bootstrapTable('getOptions').pageSize));
+									i=i%$("#QueryTable").bootstrapTable('getOptions').pageSize-1;	
+									$("#QueryTable").bootstrapTable('expandRow', (i>=0) ? i : i + $("#QueryTable").bootstrapTable('getOptions').pageSize);
+									break;
+								};							
+							}
+						}
+					};
+				}
+		}]);		
+	};
+	
+</script>
+<table id="QueryTable" class='table-striped'></table>
+<div id="toolbar" class="btn-group">
+			<button id="103" type="button" style="display:none;" class="btn btn-default" onclick="AddTable()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>新增</button>
+			<button id="104" type="button" style="display:none;" class="btn btn-default" onclick="EditTable()"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改</button>
+			<button id="105" type="button" style="display:none;" class="btn btn-default" onclick="DelTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>显示/隐藏</button>
+			<button id="106" type="button" style="display:none;" class="btn btn-default" onclick="QueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
+</div>
+<div class="modal fade" id="myModal" tabindex="-1" >
+	<div class="modal-dialog" >
+		<div class="modal-content" >
+			<div class="modal-header">
+				<h4 class="modal-title" id="myModalLabel"></h4>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			</div>
+			<div class="modal-body">
+				<label for="txt_employeeid">员工编号</label><input id="txt_employeeid" class="form-control" onkeypress="{ if (event.keyCode==13) {txt_employeename.focus()}}" type="text" placeholder="员工编号"/>
+				<label for="txt_employeename">员工姓名</label><input id="txt_employeename" class="form-control" onkeypress="{ if (event.keyCode==13) {txt_sex.focus()}}" type="text" placeholder="员工姓名"/>
+				<label for="txt_sex">性别</label><input id="txt_sex" class="form-control" onkeypress="{ if (event.keyCode==13) {txt_phone.focus()}}" type="text" placeholder="性别"/>
+				<label for="txt_phone">电话</label><input id="txt_phone" class="form-control" onkeypress="{ if (event.keyCode==13) {txt_accounts.focus()}}" type="text" placeholder="电话"/>
+				<label for="txt_accounts">帐号</label><input id="txt_accounts" class="form-control" onkeypress="{ if (event.keyCode==13) {txt_memo.focus()}}" type="text" placeholder="帐号"/>
+				<label for="txt_memo">备注</label><input id="txt_memo" class="form-control" onkeypress="{ if (event.keyCode==13) {txt_orgid.focus()}}" type="text" placeholder="备注"/>
+				<label for="txt_orgid">部门编号</label><input id="txt_orgid" class="form-control" onkeypress="{ if (event.keyCode==13) {SaveModal.focus()}}" data-target="#orgidModal" data-toggle="modal" type="text" placeholder="部门编号"/>
+			</div>
+			<div>
+				<ul id="Tree_actionid" class="ztree" ></ul>
+			</div>
+			<table id="RoleTable" class="table-striped"></table>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" id="SaveModal" data-dismiss="modal" onclick="CommitTable()"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+				<button type="button" class="btn btn-default" data-dismiss="modal" ><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>关闭</button>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="modal fade" id="orgidModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header" >
+				<h4 class="modal-title" >选择部门编号</h4>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			</div>
+			<div class="modal-body">
+				<ul id="Tree_orgid" class="ztree" ></ul>
+			</div>
+			<div class="modal-footer" >
+				<button type="button" class="btn btn-primary" data-dismiss="modal" onclick="{$('#txt_orgid').val($.fn.zTree.getZTreeObj('Tree_orgid').getSelectedNodes()[0].orgname);$('#txt_orgid').data('value',$.fn.zTree.getZTreeObj('Tree_orgid').getSelectedNodes()[0].orgid);}">确认</button>
+				<button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+			</div>
+		</div>
+	</div>
+</div>

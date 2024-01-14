@@ -1,0 +1,192 @@
+<script>
+	var systeminfotableoption={
+			toolbar: '#systeminfotoolbar',//工具按钮用哪个容器
+			clickToSelect: true,// 单击行即可以选中
+			singleSelect: true, //设置true禁止多选
+			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+            showPaginationSwitch: true,
+			showExport: true,
+			exportDataType: 'all',
+			exportTypes: ['doc', 'excel'], //导出文件类型
+			showToggle: true,  //是否显示视图切换按钮
+			showRefresh: true,// 是否显示刷新按钮
+			showColumns: true,//是否显示所有的列
+			search: true, // 开启搜索功能
+			pagination: true,// 开启分页功能
+			sortName: "systemid", // 设置默认排序为 name
+			columns: [{				field: "checked",				checkbox: true				}, {				field: "loginname",				title: "系统登录名",				align: "center",				valign: "middle"				}, {				field: "deltime",				title: "删除时间",				align: "center",				valign: "middle"				}, {				field: "deloperator",				title: "删除人员",				visible: false,				align: "center",				valign: "middle"				}, {				field: "deloperatorname",				title: "删除人员",				align: "center",				valign: "middle"				}, {				field: "updatetime",				title: "修改时间",				align: "center",				valign: "middle"				}, {				field: "updateoperator",				title: "修改人员",				visible: false,				align: "center",				valign: "middle"				}, {				field: "updateoperatorname",				title: "修改人员",				align: "center",				valign: "middle"				}, {				field: "createtime",				title: "创建时间",				align: "center",				valign: "middle"				}, {				field: "createoperator",				title: "创建人员",				visible: false,				align: "center",				valign: "middle"				}, {				field: "createoperatorname",				title: "创建人员",				align: "center",				valign: "middle"				}, {				field: "prikey",				title: "密钥",				align: "center",				valign: "middle"				}, {				field: "algorithm",				title: "加密函数1aes128,2sm4",				align: "center",				valign: "middle"				}, {				field: "isused",				title: "使用",				align: "center",				formatter : function (value, row, index) { switch(value) {case 1 :return "是"; default : return "否"}},				valign: "middle"				}, {				field: "systemname",				title: "系统名",				align: "center",				valign: "middle"				}, {				field: "systemid",				title: "系统编号",				visible: false,				visible: false,				align: "center",				valign: "middle"				}, {				field: "systemname",				title: "系统名称",				align: "center",				valign: "middle"			}],
+			onlClickCell: function (field,value,row) {
+					row.checked=true;
+			},
+			onCheck: function (row) {
+				if (actions.includes("102")) {
+					console.log(row)
+					switch(row.isused) {
+						case 0:$("#104").text("显示");break;
+						case 1:$("#104").text("隐藏");break;
+						default:$("#104").text("显示");break;
+					}
+					systeminfoEditTable(row);
+				}
+			}
+		}
+
+	$(function() {
+		checkaction(new Array("101","102","104","105"));
+		laydate.render({			elem: '#txt_createtime',			type: 'datetime',			value: new Date()		});		laydate.render({			elem: '#txt_updatetime',			type: 'datetime',			value: new Date()		});		laydate.render({			elem: '#txt_deltime',			type: 'datetime',			value: new Date()		});
+		$("#systeminfoQueryTable").bootstrapTable(systeminfotableoption);
+		$("#systeminfoQueryTable").bootstrapTable('showLoading');
+		ajaxarr([{				url:"sysinfo/systeminfo_query",				title:"获取系统信息失败！",				data:{token:token},				func: function(data) {					var systemid="<option value=''>请选择系统</option>";					if (data.info.total>0) {						for (i=0,j=data.info.rows.length;i<j;i++) { systemid+="<option value='"+data.info.rows[i].systemid+"'>"+data.info.rows[i].systemname+"</option>";}					}					$("#txt_systemid").html(systemid);				$(".selectpicker").selectpicker("refresh");				}		}]);
+		systeminfoQueryTable();
+		$(".selectpicker").selectpicker("refresh");
+		$("#systeminfomyModal").on("shown.bs.modal",function(e){ if ($("#txt_systemid").attr("disabled")) { $("#txt_SaveModal").focus() } else {$("#txt_systemid").focus()}; });
+	});
+	
+	function systeminfoAddTable() {//新增
+		$("#txt_loginname").val("");		$("#txt_createtime").val("");		$("#txt_prikey").val("");		$("#txt_algorithm").val("");		$("#txt_systemname").val("");		$("#txt_systemid").selectpicker("val","");		$("#txt_systemid").attr("disabled",false);
+        $("#systeminfomyModalLabel").html("新增");
+        
+	};
+	
+	function systeminfoEditTable(row) {
+		if (row==null) {
+			if ($("#systeminfoQueryTable").bootstrapTable('getSelections').length == 0) {
+				alert("请先选择要修改的数据!");
+				return;
+			};
+			row=$("#systeminfoQueryTable").bootstrapTable('getSelections')[0];
+		}
+		if (row.loginname!=null) { $("#txt_loginname").val(row.loginname) } else { $("#txt_loginname").val("")};		if (row.createtime!=null) { $("#txt_createtime").val(row.createtime) } else { $("#txt_createtime").val("")};		if (row.prikey!=null) { $("#txt_prikey").val(row.prikey) } else { $("#txt_prikey").val("")};		if (row.algorithm!=null) { $("#txt_algorithm").val(row.algorithm) } else { $("#txt_algorithm").val("")};		if (row.systemname!=null) { $("#txt_systemname").val(row.systemname) } else { $("#txt_systemname").val("")};		if (row.systemid!=null) { $("#txt_systemid").selectpicker("val",row.systemid) } else { $("#txt_systemid").selectpicker("val","")};		$("#txt_systemid").attr("disabled",true);
+        $("#systeminfomyModalLabel").html("修改");
+        
+	};
+	
+	function systeminfoCommitTable() {
+		var systeminfocommitdata={
+			loginname:$("#txt_loginname").val(),			createtime:$("#txt_createtime").val(),			prikey:$("#txt_prikey").val(),			algorithm:$("#txt_algorithm").val(),			systemname:$("#txt_systemname").val(),			systemid:$("#txt_systemid").val(),			token:token
+		};
+		if ($("#systeminfomyModalLabel").html()=="新增") {
+			ajaxarr([{
+				url:"sysinfo/systeminfo_add",
+				title:"新增数据失败！",
+				data:systeminfocommitdata,
+				func:function(data) {
+					alert("新增数据成功！id："+data.id);
+					systeminfoQueryTable(data.systemid);
+					systeminfoAddTable();
+				}
+			}]);
+		} else {
+			ajaxarr([{
+				url:"sysinfo/systeminfo_edit",
+				title:"修改数据失败！",
+				data:systeminfocommitdata,
+				func:function(data) {
+					alert("修改数据成功！");
+					systeminfoQueryTable(systeminfocommitdata.systemid);
+					
+				}
+			}]);		
+		};
+	};
+	
+	function systeminfoDelTable() {
+        var row = $("#systeminfoQueryTable").bootstrapTable('getSelections')[0];
+        if(row == null) {
+            alert("请先选择要删除的数据!");
+            return;
+        };       
+		switch(row.isused) {
+		    case 0:
+				if(confirm( "您真的确定要恢复吗？") == true) {
+					ajaxarr([{
+						url: "sysinfo/systeminfo_undel" ,
+						title: info+"数据失败！",
+						data:{token:token,systemid : row.systemid },
+						func: function(data) {
+							alert("恢复成功！");
+							systeminfoQueryTable();
+						}
+					}]);
+				}
+				break;
+            case 1:
+				if(confirm( "您真的确定要隐藏吗？") == true) {
+					ajaxarr([{
+						url: "sysinfo/systeminfo_del" ,
+						title: info+"数据失败！",
+						data:{token:token,systemid : row.systemid },
+						func: function(data) {
+							alert("隐藏成功！");
+							systeminfoQueryTable();
+						}
+					}]);
+				}
+				break;
+			default:
+				if(confirm( "您真的确定要删除吗？") == true) {
+					ajaxarr([{
+						url: "sysinfo/systeminfo_del" ,
+						title: info+"数据失败！",
+						data:{token:token,systemid : row.systemid },
+						func: function(data) {
+							alert(info+"成功！");
+							systeminfoQueryTable();
+						}
+					}]);
+				}
+		}
+	};
+	
+	function systeminfoQueryTable(id) {
+		$("#systeminfoQueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"sysinfo/systeminfo_query",
+				title:"获取子系统信息失败，请刷新！",
+				data:{token:token},
+				func: function (data) {
+					if (data.info.total==0) { $("#systeminfoQueryTable").bootstrapTable("destroy").bootstrapTable(systeminfotableoption); } 
+					else {	
+						$("#systeminfoQueryTable").bootstrapTable('load', data.info.rows); 
+						if (id) {
+							for (var i=data.info.total;i>0;i--) {
+								if (data.info.rows[i-1].systemid==id) {
+									$("#systeminfoQueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#systeminfoQueryTable").bootstrapTable('getOptions').pageSize));
+									$("#systeminfoQueryTable").bootstrapTable('checkBy',{field:'systemid',values:[data.info.rows[i-1].systemid]})
+									break;
+								};							
+							}
+						} else {
+							$("#systeminfoQueryTable").bootstrapTable('checkBy',{field:'systemid',values:[data.info.rows[0].systemid]})
+							systeminfoEditTable(data.info.rows[0]);
+						}
+					};
+					$("#systeminfoQueryTable").bootstrapTable('hideLoading');
+				}
+		}]);		
+	};
+</script>
+<table id="systeminfoQueryTable" class='table-striped'></table>
+<div id="systeminfotoolbar" class="btn-group">
+	<button id="101" type="button" style="display:none;" class="btn btn-default" onclick="systeminfoAddTable()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>新增</button>
+	<button id="102" type="button" style="display:none;" class="btn btn-default" onclick="systeminfoEditTable()"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改</button>
+	<button id="104" type="button" style="display:none;" class="btn btn-default" onclick="systeminfoDelTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>删除</button>
+	<button id="105" type="button" style="display:none;" class="btn btn-default" onclick="systeminfoQueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
+</div>
+<div class="row" id="systeminfomyModal" tabindex="-1" >
+	<div class="col-12" >
+		<div class="modal-content" >
+			<div class="modal-header">
+				<h4 class="modal-title" id="systeminfomyModalLabel">新增</h4>
+				
+			</div>
+			<div class="modal-body form-inline">
+				<label for="txt_loginname" class="col-lg-3 text-center">系统登录名</label><input id="txt_loginname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_deltime.focus()}}" type="text" placeholder="系统登录名"/>				<label for="txt_createtime" class="col-lg-3 text-center">创建时间</label><input id="txt_createtime" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_createoperator.focus()}}" type="text" placeholder="创建时间"/>				<label for="txt_prikey" class="col-lg-3 text-center">密钥</label><input id="txt_prikey" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_algorithm.focus()}}" type="text" placeholder="密钥"/>				<label for="txt_algorithm" class="col-lg-3 text-center">加密函数1aes128,2sm4</label><input id="txt_algorithm" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_systemname.focus()}}" type="text" placeholder="加密函数1aes128,2sm4"/>				<label for="txt_systemname" class="col-lg-3 text-center">系统名</label><input id="txt_systemname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_systemid.focus()}}" type="text" placeholder="系统名"/>				<label for="txt_systemid" class="col-lg-3 text-center">系统</label><select id="txt_systemid" class="selectpicker form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {SaveModal.focus()}}" title="请选择系统"></select>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal" onclick="systeminfoAddTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>清空</button>
+				<button type="button" class="btn btn-primary" id="systeminfoSaveModal" onclick="systeminfoCommitTable()"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+			</div>
+		</div>
+	</div>
+</div>

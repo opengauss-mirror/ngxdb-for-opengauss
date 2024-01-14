@@ -1,0 +1,189 @@
+<script>
+	var tableoption={
+			toolbar: '#toolbar',//工具按钮用哪个容器
+			clickToSelect: true,// 单击行即可以选中
+			singleSelect: true, //设置true禁止多选
+			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+            showPaginationSwitch: true,
+			showExport: true,
+			exportDataType: 'all',
+			exportTypes: ['doc', 'excel'], //导出文件类型
+			showToggle: true,  //是否显示视图切换按钮
+			showRefresh: true,// 是否显示刷新按钮
+			showColumns: true,//是否显示所有的列
+			search: true, // 开启搜索功能
+			pagination: true,// 开启分页功能
+			sortName: "errorcode", // 设置默认排序为 name
+			columns: [{
+				field: "checked",
+				checkbox: true
+				}, {
+				field: "message",
+				title: "信息",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "errorcode",
+				title: "出错代码",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "primekey",
+				title: "主键",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "isused",
+				title: "使用",
+				align: "center",
+				formatter : function (value, row, index) { switch(value) {case 1 :return "是"; default : return "否"}},
+				valign: "middle"
+				}, {
+				field: "schema",
+				title: "模式",
+				align: "center",
+				valign: "middle"
+			}],
+			onDblClickRow: function (row) {
+					row.checked=true;
+					EditTable(row);
+			},
+		}
+
+	$(function() {
+		
+		$("#QueryTable").bootstrapTable(tableoption);
+		$("#QueryTable").bootstrapTable('showLoading');
+
+		QueryTable();
+		$("#myModal").on("shown.bs.modal",function(e){ if ($("#txt_errorcode").attr("disabled")) { $("#txt_txt_primekey").focus() } else {$("#txt_errorcode").focus()}; });
+	});
+	
+	function AddTable() {//新增
+		$("#txt_message").val("");
+		$("#txt_errorcode").val("");
+		$("#txt_errorcode").attr("disabled",false);
+		$("#txt_primekey").val("");
+		$("#txt_schema").val("");
+        $("#myModalLabel").html("新增");
+        $("#myModal").modal();
+	};
+	
+	function EditTable(row) {
+		if (row==null) {
+			if ($("#QueryTable").bootstrapTable('getSelections').length == 0) {
+				alert("请先选择要修改的数据!");
+				return;
+			};
+			row=$("#QueryTable").bootstrapTable('getSelections')[0];
+		}
+		if (row.message!=null) { $("#txt_message").val(row.message) } else { $("#txt_message").val("")};
+		if (row.errorcode!=null) { $("#txt_errorcode").val(row.errorcode) } else { $("#txt_errorcode").val("")};
+		$("#txt_errorcode").attr("disabled",true);
+		if (row.primekey!=null) { $("#txt_primekey").val(row.primekey) } else { $("#txt_primekey").val("")};
+		if (row.schema!=null) { $("#txt_schema").val(row.schema) } else { $("#txt_schema").val("")};
+        $("#myModalLabel").html("修改");
+        $("#myModal").modal();
+	};
+	
+	function CommitTable() {
+		var commitdata={
+			message:$("#txt_message").val(),
+			errorcode:$("#txt_errorcode").val(),
+			primekey:$("#txt_primekey").val(),
+			schema:$("#txt_schema").val()
+		};
+		if ($("#myModalLabel").html()=="新增") {
+			ajaxarr([{
+				url:"/func/public/errorcode_add?operatorno="+employeeno+"&token="+token,
+				title:"新增数据失败！",
+				data:commitdata,
+				func:function(data) {
+					alert("新增数据成功！id："+data.id);
+					QueryTable(data.errorcode);
+				}
+			}]);
+		} else {
+			ajaxarr([{
+				url:"/func/public/errorcode_edit?operatorno="+employeeno+"&token="+token,
+				title:"修改数据失败！",
+				data:commitdata,
+				func:function(data) {
+					alert("修改数据成功！");
+					QueryTable(commitdata.errorcode);
+				}
+			}]);		
+		};
+	};
+	
+	function DelTable() {
+        var row = $("#QueryTable").bootstrapTable('getSelections')[0];
+        if(row == null) {
+            alert("请先选择要显示/隐藏的数据!");
+            return;
+        };       
+		var info=(row.isused==0) ? "显示" : "隐藏";
+		if(confirm( "您真的确定要"+info+"显示/隐藏吗？") == true) {
+			ajaxarr([{
+				url: "/func/public/errorcode_del?operatorno=" + employeeno + "&token=" + token ,
+				title: info+"数据失败！",
+				data:{errorcode : row.errorcode , isused : (row.isused==0) ? 1 : null},
+				func: function(data) {
+					alert(info+"成功！");
+                    QueryTable();
+				}
+			}]);
+		}
+	};
+	
+	function QueryTable(id) {
+		$("#QueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"/func/public/errorcode_query?operatorno=" + employeeno + "&token=" + token,
+				title:"获取出错代码信息失败，请刷新！",
+				data:{},
+				func: function (data) {
+					if (data.total==0) { $("#QueryTable").bootstrapTable("destroy").bootstrapTable(tableoption); } 
+					else {	
+						$("#QueryTable").bootstrapTable('load', data.rows); 
+						if (id) {
+							for (var i=data.total;i>0;i--) {
+								if (data.rows[i-1].errorcode==id) {
+									$("#QueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#QueryTable").bootstrapTable('getOptions').pageSize));
+									break;
+								};							
+							}
+						}
+					};
+					$("#QueryTable").bootstrapTable('hideLoading');
+				}
+		}]);		
+	};
+</script>
+<table id="QueryTable" class='table-striped'></table>
+<div id="toolbar" class="btn-group">
+	<button id="" type="button" class="btn btn-default" onclick="AddTable()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>新增</button>
+	<button id="" type="button" class="btn btn-default" onclick="EditTable()"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改</button>
+	<button id="" type="button" class="btn btn-default" onclick="DelTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>显示/隐藏</button>
+	<button id="" type="button" class="btn btn-default" onclick="QueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
+</div>
+<div class="modal fade" id="myModal" tabindex="-1" >
+	<div class="modal-dialog" >
+		<div class="modal-content" >
+			<div class="modal-header">
+				<h4 class="modal-title" id="myModalLabel"></h4>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			</div>
+			<div class="modal-body">
+				<label for="txt_message">信息</label><input id="txt_message" class="form-control" onkeypress="{ if (event.keyCode==13) {txt_errorcode.focus()}}" type="text" placeholder="信息"/>
+				<label for="txt_errorcode">出错代码</label><input id="txt_errorcode" class="form-control" onkeypress="{ if (event.keyCode==13) {txt_primekey.focus()}}" type="text" placeholder="出错代码"/>
+				<label for="txt_primekey">主键</label><input id="txt_primekey" class="form-control" onkeypress="{ if (event.keyCode==13) {txt_schema.focus()}}" type="text" placeholder="主键"/>
+				<label for="txt_schema">模式</label><input id="txt_schema" class="form-control" onkeypress="{ if (event.keyCode==13) {SaveModal.focus()}}" type="text" placeholder="模式"/>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" id="SaveModal" data-dismiss="modal" onclick="CommitTable()"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+				<button type="button" class="btn btn-default" data-dismiss="modal" ><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>关闭</button>
+			</div>
+		</div>
+	</div>
+</div>

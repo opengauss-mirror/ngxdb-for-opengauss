@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Home</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="robots" content="all,follow">
+    <script src="setting.js"></script>
+    <!-- Bootstrap CSS-->
+    <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+	<link rel="stylesheet" href="css/bootstrap-select.min.css">
+    <!-- Font Awesome CSS-->
+    <link rel="stylesheet" href="vendor/font-awesome/css/font-awesome.min.css">
+    <!-- Fontastic Custom icon font-->
+    <link rel="stylesheet" href="css/fontastic.css">
+    <!-- Google fonts - Poppins -->
+    <!--link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,700"-->
+    <!-- theme stylesheet-->
+    <link rel="stylesheet" href="css/style.default.css" id="theme-stylesheet">
+    <!-- Custom stylesheet - for your changes-->
+    <link rel="stylesheet" href="css/custom.css">
+    <!-- Favicon-->
+    <link rel="shortcut icon" href="img/favicon.ico">
+	<!-- jquery-->
+	<link rel="stylesheet" href="css/jquery.mloading.css" />
+	<!-- bootstrap-table -->
+	<link rel="stylesheet" href="css/bootstrap-table.css" />
+	<!-- zTree-->	
+	<link rel="stylesheet" href="zTree/zTreeStyle.css" />
+	
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <nav class="navbar">
+          <div class="search-box">
+            <button class="dismiss"><i class="icon-close"></i></button>
+            <form id="searchForm" action="#" role="search">
+              <input type="search" placeholder="What are you looking for..." class="form-control">
+            </form>
+          </div>
+          <div class="container-fluid">
+            <div class="navbar-holder d-flex align-items-center justify-content-between">
+              <div class="navbar-header">
+                  <a href="index.html" class="navbar-brand d-none d-sm-inline-block">
+                  <div class="brand-text d-none d-lg-inline-block"><span><strong>有限公司</strong></span>系统</div>
+                  <div class="brand-text d-none d-sm-inline-block d-lg-none"><strong>BD</strong></div></a>
+                <!-- Toggle Button--><a id="toggle-btn" href="#" class="menu-btn active"><span></span><span></span><span></span></a>
+              </div>
+              <ul class="nav-menu list-unstyled d-flex flex-md-row align-items-md-center">
+                <!-- Search-->
+                <li class="nav-item d-flex align-items-center"><a id="search" href="#"><i class="icon-search"></i></a></li>
+                <!-- Notifications-->
+                <!-- Languages dropdown    -->
+                <li class="nav-item dropdown">
+					<a id="languages" rel="nofollow" data-target="#" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="nav-link language dropdown-toggle">
+								<span class="user-info">
+									<small id="myorg"></small>
+									<p id="myname"></p>
+								</span>
+					</a>
+                  <ul aria-labelledby="languages" class="dropdown-menu">
+								<li><a rel="nofollow" href="#" class="dropdown-item"><i class="mr-2"></i> 个性设置</a></li>
+								<li id="141" style="display:none"><a rel="nofollow" href="#" class="dropdown-item" data-target="#ChangePass" data-toggle="modal"><i class="mr-2"></i> 修改密码	</a></li>
+								<li id="" ><a rel="nofollow" href="login.html" class="dropdown-item" ><i class="mr-2"></i> 退出</a></li>
+                  </ul>
+                </li>
+                <!-- Logout    -->
+                <!--li class="nav-item"><a href="login.html" class="nav-link logout"> <span class="d-none d-sm-inline">Logout</span><i class="fa fa-sign-out"></i></a></li-->
+              </ul>
+            </div>
+          </div>
+        </nav>
+      </header>
+      <div class="page-content d-flex align-items-stretch"> 
+        <!-- Side Navbar -->
+        <nav class="side-navbar ">
+          <!-- Sidebar Navidation Menus--><span class="heading"><h1>功能列表</h1></span>
+          <ul class="list-unstyled">
+				<li class="active" id="101" ><a href="#sysinfo" aria-expanded="false" data-toggle="collapse">系统管理</a>
+					<ul id="sysinfo" class="collapse list-unstyled ">
+						<li id="9100" style="display:none"><a href="javascript:loadhtml('html/sysinfo/sysaction.html','系统管理','权限管理')">权限管理</a></li>
+						<li id="100" style="display:none"><a href="javascript:loadhtml('html/sysinfo/serverlog.html','系统管理','日志查询')">日志查询</a></li>
+						<li id="100" style="display:none"><a href="javascript:loadhtml('html/operator/employee.html','系统管理','员工管理')">员工管理</a></li>
+						<li id="100" style="display:none"><a href="javascript:loadhtml('html/sysinfo/role.html','系统管理','角色管理')">角色管理</a></li>
+						<li id="9102" style="display:none"><a href="javascript:loadhtml('html/sysinfo/sysorg.html','系统管理','部门管理')">部门管理</a></li>
+						<li id="9101" style="display:none"><a href="javascript:loadhtml('html/sysinfo/orgtype.html','系统管理','部门类型管理')">部门类型管理</a></li>
+						<li id="9103" style="display:none"><a href="javascript:loadhtml('html/sysinfo/systeminfo.html','系统管理','系统管理')">系统管理</a></li>
+						<li id="100" style="display:none"><a href="javascript:loadhtml('html/errorcode.html','系统管理','出错代码')">出错代码</a></li>
+					</ul>
+				</li>
+				<li class="active" name="12000" ><a href="#info" aria-expanded="false" data-toggle="collapse">信息管理</a>
+					<ul id="info" class="collapse list-unstyled ">
+						<li id="12001" style="display:none"><a href="javascript:loadhtml('subhtml/boardtype.html','信息管理','型号')">型号</a></li>
+						<li id="12006" style="display:none"><a href="javascript:loadhtml('subhtml/material.html','信息管理','基材')">基材</a></li>
+						<li id="12011" style="display:none"><a href="javascript:loadhtml('subhtml/cover.html','信息管理','覆盖膜')">覆盖膜</a></li>
+						<li id="12200" style="display:none"><a href="javascript:loadhtml('subhtml/kbr_price.html','信息管理','价格管理')">价格管理</a></li>
+					</ul>
+				</li>
+				<li class="active" name="12300" ><a href="#order" aria-expanded="true" data-toggle="collapse">订单管理</a>
+					<ul id="order" class="list-unstyled ">
+						<li id="12301" style="display:none"><a href="javascript:loadhtml('subhtml/calprice.html','订单管理','批量报价')">批量报价</a></li>
+						<li id="12302" style="display:none"><a href="javascript:loadhtml('subhtml/calsimple.html','订单管理','样品报价')">样品报价</a></li>
+					</ul>
+				</li>
+          </ul>
+        </nav>
+        <div class="content-inner" >
+          <!-- Page Header-->
+<div class="page-header" id='pageheader'>
+</div>
+          <!-- Dashboard Counts Section-->
+<section class="dashboard-counts no-padding-bottom ">
+	<div class='row'><div class='col-12' id="main" >		  </div></div></section>
+          <!-- Dashboard Header Section    -->
+          <!-- Projects Section-->
+          <!-- Client Section-->
+          <!-- Feeds Section-->
+          <!-- Updates Section                                                -->
+          <!-- Page Footer-->
+          <footer class="main-footer">
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-sm-6">
+                  <p>Copyright &copy; 2019.liuzushi All rights reserved.</p>
+                </div>
+                <div class="col-sm-6 text-right">
+                  <p></p>
+                  <!-- Please do not remove the backlink to us unless you support further theme's development at https://bootstrapious.com/donate. It is part of the license conditions. Thank you for understanding :)-->
+                </div>
+              </div>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </div>
+		<div class="modal fade" id="ChangePass" tabindex="-1" role="dialog" aria-labelledby="power_gt">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content" style="position:relative;">
+					<div class="modal-header">
+						<h4 class="modal-title" id="power_gt">修改密码</h4>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					</div>
+					<div class="modal-body row clearfix">
+						<div class="form-group col-sm-6">
+							<label for="txt_oldpass">旧密码</label>
+							<input type="password" class="form-control" id="txt_oldpass" placeholder="旧密码">
+						</div>
+
+						<div class="form-group col-sm-6 ">
+							<label for="ext_newpass">新密码</label>
+							<input type="password"  class="form-control" id="txt_newpass" placeholder="新密码">
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" id="btn_pass" class="btn btn-primary" data-dismiss="modal" onclick="{ChangePass()}"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+						<button type="button" class="btn btn-default" data-dismiss="modal"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>关闭</button>
+					</div>
+				</div>
+			</div>
+		</div>
+    <!-- JavaScript files-->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/popper.js/umd/popper.min.js"> </script>
+    <script src="vendor/bootstrap/js/bootstrap.min.js"></script>
+	<script src="vendor/bootstrap/js/bootstrap-select.min.js"></script>
+    <script src="vendor/jquery.cookie/jquery.cookie.js"> </script>
+    <script src="vendor/jquery-validation/jquery.validate.min.js"></script>
+	<script src="vendor/jquery/jquery.mloading.js"></script>
+    <!--script src="vendor/chart.js/Chart.min.js"></script-->
+    <!--script src="js/charts-home.js"></script-->
+    <!-- Main File-->
+    <script src="js/front.js"></script>
+	<!-- laydate-->
+	<script src="laydate/laydate.js"></script>
+	<!--bootstraptable-->
+	<script type="text/javascript" src="bootstrap-table/bootstrap-table.js"></script>
+	<script type="text/javascript" src="bootstrap-table/bootstrap-table-zh-CN.js"></script>
+	<script type="text/javascript" src="bootstrap-table/bootstrap-table-export.js"></script>
+	<script type="text/javascript" src="tableExport/libs/FileSaver/FileSaver.min.js"></script>
+	<script type="text/javascript" src="tableExport/libs/jsPDF/jspdf.min.js"></script>
+	<script type="text/javascript" src="tableExport/libs/jsPDF-AutoTable/jspdf.plugin.autotable.js"></script>
+	<script type="text/javascript" src="tableExport/tableExport.js"></script>
+	<!-- Ztree -->
+	<script type="text/javascript" src="zTree/jquery.ztree.core.min.js" ></script>
+	<script type="text/javascript" src="zTree/jquery.ztree.excheck.min.js" ></script>
+  </body>
+</html>
+<script>
+	if (localStorage.length==0 ) {window.location.href="login.html"}
+	var token = localStorage.token;
+	var operator = JSON.parse(localStorage.operator);
+	var orgid = operator.org[0].sysorgid;
+	var employeename = operator.operatorname;
+	var orgname = operator.org[0].sysorgname;
+	var actions= localStorage.actions.split(",");
+	$(function(){
+		$.fn.selectpicker.Constructor.BootstrapVersion = '4';
+		for (i=0,len=actions.length;i<len;i++){ 
+			if ($("#"+actions[i]).length>0) { 
+				$("#"+actions[i]).show();
+			}
+		};	
+		$("#myorg").text(orgname + "【" + orgid + "】");
+		$("#myname").text(employeename );
+	});
+	
+	function ChangePass() {
+		ajaxarr([{
+			url:"operator/changepassword",
+			titile:"修改密码失败！",
+			data:{token:token,oldpass:$("#txt_oldpass").val(),newpass:$("#txt_newpass").val()},
+			func:function(data) {
+				alert("修改成功！");
+				$("#txt_oldpass").val("");
+				$("#txt_newpass").val("");
+			}
+		}]);	
+	}
+	
+	function checkaction(action) {
+		for (i=0,len=action.length;i<len;i++){ 
+			if (actions.includes(action[i])) { $("#"+action[i]).show();}
+		}
+	}
+	
+	function loadhtml(url,menu1,menu2) {
+/*		$.ajax( {
+			url: url, //这里是静态页的地址
+			type: "GET", //静态页用get方法，否则服务器会抛出405错误
+			dataType: "html",
+			success: function(data){
+				$("#main").html(data); 
+			}
+		});*/
+		$('#main').load(url);
+		$('#pageheader').html('<h1>'+menu1+'<small><i class="fa fa-angle-double-right"></i>'+menu2+'</small></i></h1>');
+	}		
+
+	function checkerror(title,data) {
+					if (data.errorcode == 100005 || data.errorcode==100006) { //加载服务超时
+						alert(title+"错误代码：" + data.errorcode + ",错误信息：" + data.message);
+						window.location.href = 'login.html';
+					};
+					if (data.errorcode != 0) {
+						alert(title+"错误代码：" + data.errorcode + ",错误信息：" + data.message);
+						return false;
+					};
+					return true;
+	}
+	
+	function ajaxarr( ajaxjson ) {
+		console.log(ajaxjson[0]);
+		if (ajaxjson.length>0) {
+			data={}
+			// for (let key in ajaxjson[0].data) {if (ajaxjson[0].data[key]!==undefined && ajaxjson[0].data][key]!==null) data.}
+			Object.entries(ajaxjson[0].data).forEach(([key,value])=>{if (value!==undefined && value!==null) data[key]=value})
+			$.ajax({ type : "post",
+				dataType: "json",
+				url : url+ajaxjson[0].url,
+				data : data,
+				error : function (XMLHttpRequest, textStatus, errorThrown) {
+					alert(ajaxjson[0].title+"服务器请求失败，请与管理员联系！");				
+				},
+				success : function (data) {
+					console.log(data);
+					if (!checkerror(ajaxjson[0].title,data)) {return false};
+					if (ajaxjson[0].func) {ajaxjson[0].func(data)};
+					ajaxjson.splice(0,1);
+					if (ajaxjson.length>0) {
+						return ajaxarr( ajaxjson);
+					};
+					return true;
+				}
+			});
+        } else { 
+			return true;
+		};				
+	}
+	
+	window.onunload=function(){
+		localStorage.clear();
+	}
+	
+	function expendp(zTree,node){
+		pnode=node.getParentNode();
+		if (pnode!=null) {
+			if (!pnode.open) {	expendp(zTree,pnode) }
+		};
+		zTree.expandNode(node,true);
+	}
+	
+	function format(time, format) {
+		var t = new Date(time);
+		var tf = function(i) {
+			return(i < 10 ? '0' : '') + i
+		};
+		return format.replace(/yyyy|MM|dd|HH|mm|ss/g, function(a) {
+					switch(a) {
+						case 'yyyy':
+							return tf(t.getFullYear());
+							break;
+						case 'MM':
+							return tf(t.getMonth() + 1);
+							break;
+						case 'mm':
+							return tf(t.getMinutes());
+							break;
+						case 'dd':
+							return tf(t.getDate());
+							break;
+						case 'HH':
+							return tf(t.getHours());
+							break;
+						case 'ss':
+							return tf(t.getSeconds());
+							break;
+					}
+		})
+	}
+
+</script>
