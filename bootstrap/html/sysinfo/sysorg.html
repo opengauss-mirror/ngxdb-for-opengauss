@@ -36,7 +36,7 @@
 	});
 	
 	function AddTable() {//新增
-		$("#txt_orgtype").selectpicker("val","");		$("#txt_description").val("");		$("#txt_sysorgname").val("");		$("#txt_sysorgid").val("");		$("#txt_sysorgid").attr("disabled",false);		$("#txt_upid").val("");$("#txt_upid").data("value","");
+		$("#txt_orgtype").selectpicker("val","");		$("#txt_orgtype").val("");		$("#txt_description").val("");		$("#txt_sysorgname").val("");		$("#txt_sysorgid").val("");		$("#txt_sysorgid").attr("disabled",false);		$("#txt_upid").val("");$("#txt_upid").data("value","");
         $("#myModalLabel").html("新增");
         $("#myModal").modal();
 	};
@@ -49,7 +49,7 @@
 			};
 			row=$("#QueryTable").bootstrapTable('getSelections')[0];
 		}
-		if (row.orgtype!=null) { $("#txt_orgtype").selectpicker("val",row.orgtype) } else { $("#txt_orgtype").selectpicker("val","")};		if (row.description!=null) { $("#txt_description").val(row.description) } else { $("#txt_description").val("")};		if (row.sysorgname!=null) { $("#txt_sysorgname").val(row.sysorgname) } else { $("#txt_sysorgname").val("")};		if (row.sysorgid!=null) { $("#txt_sysorgid").val(row.sysorgid) } else { $("#txt_sysorgid").val("")};		$("#txt_sysorgid").attr("disabled",true);		if (row.upid) {			if (row.upid!=0) {				expendp($.fn.zTree.getZTreeObj("Tree_up"),$.fn.zTree.getZTreeObj("Tree_up").getNodeByParam("sysorgid",row.upid));				$.fn.zTree.getZTreeObj("Tree_up").selectNode($.fn.zTree.getZTreeObj("Tree_up").getNodeByParam("sysorgid",row.upid),true);			};			$("#txt_upid").val(row.upname);			$("#txt_upid").data("value",row.upid);		} else {			$("#txt_upid").val("");			$("#txt_upid").data("value","");		};
+		if (row.orgtype!=null) { $("#txt_orgtype").selectpicker("val",row.orgtype) } else { $("#txt_orgtype").selectpicker("val","")};		if (row.orgtype!=null) { $("#txt_orgtype").val(row.orgtype) } else { $("#txt_orgtype").val("")};		if (row.description!=null) { $("#txt_description").val(row.description) } else { $("#txt_description").val("")};		if (row.sysorgname!=null) { $("#txt_sysorgname").val(row.sysorgname) } else { $("#txt_sysorgname").val("")};		if (row.sysorgid!=null) { $("#txt_sysorgid").val(row.sysorgid) } else { $("#txt_sysorgid").val("")};		$("#txt_sysorgid").attr("disabled",true);		if (row.upid) {			if (row.upid!=0) {				expendp($.fn.zTree.getZTreeObj("Tree_up"),$.fn.zTree.getZTreeObj("Tree_up").getNodeByParam("sysorgid",row.upid));				$.fn.zTree.getZTreeObj("Tree_up").selectNode($.fn.zTree.getZTreeObj("Tree_up").getNodeByParam("sysorgid",row.upid),true);			};			$("#txt_upid").val(row.upname);			$("#txt_upid").data("value",row.upid);		} else {			$("#txt_upid").val("");			$("#txt_upid").data("value","");		};
 		expendp($.fn.zTree.getZTreeObj("Tree_all"),$.fn.zTree.getZTreeObj("Tree_all").getNodeByParam("sysorgid",row.sysorgid));
         $("#myModalLabel").html("修改");
         $("#myModal").modal();
@@ -57,7 +57,7 @@
 	
 	function CommitTable() {
 		var commitdata={
-			orgtype:$("#txt_orgtype").val(),			description:$("#txt_description").val(),			sysorgname:$("#txt_sysorgname").val(),			sysorgid:$("#txt_sysorgid").val(),			upid:$("#txt_upid").data("value"),			token:token
+			orgtype:$("#txt_orgtype").val(),			orgtype:$("#txt_orgtype").val(),			description:$("#txt_description").val(),			sysorgname:$("#txt_sysorgname").val(),			sysorgid:$("#txt_sysorgid").val(),			upid:$("#txt_upid").data("value"),			token:token,
 		};
 		if ($("#myModalLabel").html()=="新增") {
 			ajaxarr([{
@@ -65,8 +65,8 @@
 				title:"新增数据失败！",
 				data:commitdata,
 				func:function(data) {
-					alert("新增数据成功！id："+data.sysorgid);
-					QueryTable(data.sysorgid);
+					alert("新增数据成功！id："+data.info.id);
+					QueryTable(data.info.id);
 					$("#myModal").modal("hide");
 				}
 			}]);
@@ -174,7 +174,7 @@
 				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
 			</div>
 			<div class="modal-body form-inline">
-				<label for="txt_orgtype" class="col-lg-3 text-center">部门类型名</label><select id="txt_orgtype" class="selectpicker form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_description.focus()}}" title="请选择部门类型id"></select>				<label for="txt_description" class="col-lg-3 text-center">说明</label><input id="txt_description" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_sysorgname.focus()}}" type="text" placeholder="说明"/>				<label for="txt_sysorgname" class="col-lg-3 text-center">部门名称</label><input id="txt_sysorgname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_sysorgid.focus()}}" type="text" placeholder="部门名称"/>				<label for="txt_sysorgid" class="col-lg-3 text-center">部门id</label><input id="txt_sysorgid" class="form-control col-lg-3" disabled="disabled" onkeypress="{ if (event.keyCode==13) {txt_systemid.focus()}}" type="text" placeholder="部门id"/>				<label for="txt_upid" class="col-lg-3 text-center">上级部门</label><input id="txt_upid" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_idcount.focus()}}" data-target="#upModal" data-toggle="modal" type="text" placeholder="上级部门"/>
+				<label for="txt_orgtype" class="col-lg-3 text-center">部门类型名</label><select id="txt_orgtype" class="selectpicker form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_description.focus()}}" title="请选择部门类型id"></select>				<label for="txt_orgtype" class="col-lg-3 text-center">部门类型id</label><input id="txt_orgtype" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_description.focus()}}" type="text" placeholder="部门类型id"/>				<label for="txt_description" class="col-lg-3 text-center">说明</label><input id="txt_description" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_sysorgname.focus()}}" type="text" placeholder="说明"/>				<label for="txt_sysorgname" class="col-lg-3 text-center">部门名称</label><input id="txt_sysorgname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_sysorgid.focus()}}" type="text" placeholder="部门名称"/>				<label for="txt_sysorgid" class="col-lg-3 text-center">部门id</label><input id="txt_sysorgid" class="form-control col-lg-3" disabled="disabled" onkeypress="{ if (event.keyCode==13) {txt_systemid.focus()}}" type="text" placeholder="部门id"/>				<label for="txt_upid" class="col-lg-3 text-center">上级部门</label><input id="txt_upid" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_idcount.focus()}}" data-target="#upModal" data-toggle="modal" type="text" placeholder="上级部门"/>
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-primary" id="SaveModal" onclick="CommitTable()"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>

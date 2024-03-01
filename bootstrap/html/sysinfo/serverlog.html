@@ -1,11 +1,10 @@
 <script>
-	$(function() {
-		checkaction(new Array("261"));
-		$("#QueryTable").bootstrapTable({
-			toolbar: '#toolbar',//工具按钮用哪个容器
+	var serverlogtableoption={
+			toolbar: '#serverlogtoolbar',//工具按钮用哪个容器
 			clickToSelect: true,// 单击行即可以选中
 			singleSelect: true, //设置true禁止多选
 			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+            showPaginationSwitch: true,
 			showExport: true,
 			exportDataType: 'all',
 			exportTypes: ['doc', 'excel'], //导出文件类型
@@ -19,24 +18,33 @@
 				field: "checked",
 				checkbox: true
 				}, {
-				field: "logid",
-				title: "日志编号",
-				visible: false,
+				field: "head",
+				title: "头",
 				align: "center",
 				valign: "middle"
 				}, {
-				field: "clientip",
-				title: "客户地址",
+				field: "res",
+				title: "返回",
 				align: "center",
 				valign: "middle"
 				}, {
-				field: "pckname",
-				title: "分类名",
+				field: "operatorid",
+				title: "操作员",
 				align: "center",
 				valign: "middle"
 				}, {
-				field: "funcname",
-				title: "功能名",
+				field: "params",
+				title: "参数",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "serverip",
+				title: "服务器IP",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "logtime",
+				title: "时间",
 				align: "center",
 				valign: "middle"
 				}, {
@@ -45,74 +53,234 @@
 				align: "center",
 				valign: "middle"
 				}, {
-				field: "logtime",
-				title: "日志时间",
+				field: "funcname",
+				title: "功能名",
 				align: "center",
 				valign: "middle"
 				}, {
-				field: "serverip",
-				title: "服务器地址",
+				field: "pckname",
+				title: "包名",
 				align: "center",
 				valign: "middle"
 				}, {
-				field: "operatorid",
-				title: "操作员编号",
+				field: "clientip",
+				title: "客户IP",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "logid",
+				title: "日志ID",
+				visible: false,
 				align: "center",
 				valign: "middle"
 			}],
-			onDblClickRow: function (row) {
-				if (actions.includes("")) {
+			onlClickCell: function (field,value,row) {
 					row.checked=true;
-					EditTable(row);
+			},
+			onCheck: function (row) {
+				if (actions.includes("103")) {
+					console.log(row)
+					switch(row.isused) {
+						case 0:$("#105").text("显示");break;
+						case 1:$("#105").text("隐藏");break;
+						default:$("#105").text("显示");break;
+					}
+					serverlogEditTable(row);
 				}
 			}
-		});
-		$("#QueryTable").bootstrapTable('showLoading');
-		QueryTable();
+		}
+
+	$(function() {
+		checkaction(new Array("102","103","105","106","107"));
 		laydate.render({
-			elem: '#endlogtime',
-			type: 'datetime'
+			elem: '#txt_logtime',
+			type: 'datetime',
+			value: new Date()
 		});
-		laydate.render({
-			elem: '#beginlogtime',
-			type: 'datetime'
-		});
-		$("#myModal").on("shown.bs.modal",function(e){ if ($("#txt_logid").attr("disabled")) { $("#txt_txt_clientip").focus() } else {$("#txt_logid").focus()}; });
+		$("#serverlogQueryTable").bootstrapTable(serverlogtableoption);
+		$("#serverlogQueryTable").bootstrapTable('showLoading');
+
+		serverlogQueryTable();
+		$(".selectpicker").selectpicker("refresh");
+		$("#serverlogmyModal").on("shown.bs.modal",function(e){ if ($("#txt_logid").attr("disabled")) { $("#txt_SaveModal").focus() } else {$("#txt_logid").focus()}; });
 	});
 	
-	function QueryTable(id) {
-		$("#QueryTable").bootstrapTable('showLoading');
+	function serverlogAddTable() {//新增
+		$("#txt_head").val("");
+		$("#txt_res").val("");
+		$("#txt_params").val("");
+		$("#txt_serverip").val("");
+		$("#txt_logtime").val("");
+		$("#txt_content").val("");
+		$("#txt_funcname").val("");
+		$("#txt_pckname").val("");
+		$("#txt_clientip").val("");
+		$("#txt_logid").val("");
+		$("#txt_logid").attr("disabled",false);
+        $("#serverlogmyModalLabel").html("新增");
+        
+	};
+	
+	function serverlogEditTable(row) {
+		if (row==null) {
+			if ($("#serverlogQueryTable").bootstrapTable('getSelections').length == 0) {
+				alert("请先选择要修改的数据!");
+				return;
+			};
+			row=$("#serverlogQueryTable").bootstrapTable('getSelections')[0];
+		}
+		if (row.head!=null) { $("#txt_head").val(row.head) } else { $("#txt_head").val("")};
+		if (row.res!=null) { $("#txt_res").val(row.res) } else { $("#txt_res").val("")};
+		if (row.params!=null) { $("#txt_params").val(row.params) } else { $("#txt_params").val("")};
+		if (row.serverip!=null) { $("#txt_serverip").val(row.serverip) } else { $("#txt_serverip").val("")};
+		if (row.logtime!=null) { $("#txt_logtime").val(row.logtime) } else { $("#txt_logtime").val("")};
+		if (row.content!=null) { $("#txt_content").val(row.content) } else { $("#txt_content").val("")};
+		if (row.funcname!=null) { $("#txt_funcname").val(row.funcname) } else { $("#txt_funcname").val("")};
+		if (row.pckname!=null) { $("#txt_pckname").val(row.pckname) } else { $("#txt_pckname").val("")};
+		if (row.clientip!=null) { $("#txt_clientip").val(row.clientip) } else { $("#txt_clientip").val("")};
+		if (row.logid!=null) { $("#txt_logid").val(row.logid) } else { $("#txt_logid").val("")};
+		$("#txt_logid").attr("disabled",true);
+        $("#serverlogmyModalLabel").html("修改");
+        
+	};
+	
+	function serverlogCommitTable() {
+		var serverlogcommitdata={
+			head:$("#txt_head").val(),
+			res:$("#txt_res").val(),
+			params:$("#txt_params").val(),
+			serverip:$("#txt_serverip").val(),
+			logtime:$("#txt_logtime").val(),
+			content:$("#txt_content").val(),
+			funcname:$("#txt_funcname").val(),
+			pckname:$("#txt_pckname").val(),
+			clientip:$("#txt_clientip").val(),
+			logid:$("#txt_logid").val(),
+			token:token,
+		};
+		if ($("#serverlogmyModalLabel").html()=="新增") {
+			ajaxarr([{
+				url:"sysinfo/serverlog_add",
+				title:"新增数据失败！",
+				data:serverlogcommitdata,
+				func:function(data) {
+					alert("新增数据成功！id："+data.info.id);
+					serverlogQueryTable(data.info.id);
+					serverlogAddTable();
+				}
+			}]);
+		} else {
+			ajaxarr([{
+				url:"sysinfo/serverlog_edit",
+				title:"修改数据失败！",
+				data:serverlogcommitdata,
+				func:function(data) {
+					alert("修改数据成功！");
+					serverlogQueryTable(serverlogcommitdata.logid);
+					
+				}
+			}]);		
+		};
+	};
+	
+	function serverlogDelTable() {
+        var row = $("#serverlogQueryTable").bootstrapTable('getSelections')[0];
+        if(row == null) {
+            alert("请先选择要删除的数据!");
+            return;
+        };       
+		if(confirm( "您真的确定要删除吗？") == true) {
+			ajaxarr([{
+				url: "sysinfo/serverlog_del" ,
+				title: "删除数据失败！",
+				data:{token:token,logid : row.logid },
+				func: function(data) {
+					alert("删除成功！");
+					serverlogQueryTable();
+				}
+			}]);
+		}
+	};
+	
+	function serverlogUndelTable() {
+        var row = $("#serverlogQueryTable").bootstrapTable('getSelections')[0];
+        if(row == null) {
+            alert("请先选择要恢复的数据!");
+            return;
+        };       
+		if(confirm( "您真的确定要恢复吗？") == true) {
+			ajaxarr([{
+				url: "sysinfo/serverlog_undel" ,
+				title: "恢复数据失败！",
+				data:{token:token,logid : row.logid },
+				func: function(data) {
+					alert("恢复成功！");
+					serverlogQueryTable();
+				}
+			}]);
+		}
+	}
+
+
+	function serverlogQueryTable(id) {
+		$("#serverlogQueryTable").bootstrapTable('showLoading');
 		ajaxarr([{
-				url:"/func/public/serverlog1_query?operatorno=" + employeeno + "&token=" + token,
+				url:"sysinfo/serverlog_query",
 				title:"获取系统日志信息失败，请刷新！",
-				data:{
-					beginlogtime:$("#beginlogtime").val(),
-					endlogtime:$("#endlogtime").val()
-				},
+				data:{token:token},
 				func: function (data) {
-					$("#QueryTable").bootstrapTable('hideLoading');
-					if (data.total==0) { $("#QueryTable").bootstrapTable('removeAll'); } 
+					if (data.info.total==0) { $("#serverlogQueryTable").bootstrapTable("destroy").bootstrapTable(serverlogtableoption); } 
 					else {	
-						$("#QueryTable").bootstrapTable('load', data.rows); 
+						$("#serverlogQueryTable").bootstrapTable('load', data.info.rows); 
 						if (id) {
-							for (var i=data.total;i>0;i--) {
-								if (data.rows[i-1].logid==id) {
-									$("#QueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#QueryTable").bootstrapTable('getOptions').pageSize));
+							for (var i=data.info.total;i>0;i--) {
+								if (data.info.rows[i-1].logid==id) {
+									$("#serverlogQueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#serverlogQueryTable").bootstrapTable('getOptions').pageSize));
+									$("#serverlogQueryTable").bootstrapTable('checkBy',{field:'logid',values:[data.info.rows[i-1].logid]})
 									break;
 								};							
 							}
+						} else {
+							$("#serverlogQueryTable").bootstrapTable('checkBy',{field:'logid',values:[data.info.rows[0].logid]})
+							serverlogEditTable(data.info.rows[0]);
 						}
 					};
+					$("#serverlogQueryTable").bootstrapTable('hideLoading');
 				}
 		}]);		
 	};
 </script>
-<div class="form-inline">
-	<label for="operatorid" class="col-1 form-control">操作员编号：</label><input id="operatorid" type="text" class="col-2 form-control" placeholder="请输入操作员编号">
-	<label for="beginlogtime" class="col-1 form-control">开始时间：</label>	<input id="beginlogtime" class="col-2 form-control">
-	<label for="endlogtime" class="col-1 form-control">结束时间：</label><input id="endlogtime" class="col-2 form-control">
+<table id="serverlogQueryTable" class='table-striped'></table>
+<!-- <div id="serverlogtoolbar" class="btn-group">
+	<button id="102" type="button" style="display:none;" class="btn btn-default" onclick="serverlogAddTable()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>新增</button>
+	<button id="103" type="button" style="display:none;" class="btn btn-default" onclick="serverlogEditTable()"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改</button>
+	<button id="105" type="button" style="display:none;" class="btn btn-default" onclick="serverlogDelTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>删除</button>
+	<button id="107" type="button" style="display:none;" class="btn btn-default" onclick="serverlogUndelTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>恢复</button>
+	<button id="106" type="button" style="display:none;" class="btn btn-default" onclick="serverlogQueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
 </div>
-<table id="QueryTable" class='table-striped'></table>
-<div id="toolbar" class="btn-group">
-	<button id="261" type="button" style="display:none;" class="btn btn-default" onclick="QueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
-</div>
+<div class="row" id="serverlogmyModal" tabindex="-1" >
+	<div class="col-12" >
+		<div class="modal-content" >
+			<div class="modal-header">
+				<h4 class="modal-title" id="serverlogmyModalLabel">新增</h4>
+				
+			</div>
+			<div class="modal-body form-inline">
+				<label for="txt_head" class="col-lg-3 text-center">头</label><input id="txt_head" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_res.focus()}}" type="text" placeholder="头"/>
+				<label for="txt_res" class="col-lg-3 text-center">返回</label><input id="txt_res" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_operatorid.focus()}}" type="text" placeholder="返回"/>
+				<label for="txt_params" class="col-lg-3 text-center">参数</label><input id="txt_params" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_serverip.focus()}}" type="text" placeholder="参数"/>
+				<label for="txt_serverip" class="col-lg-3 text-center">服务器IP</label><input id="txt_serverip" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_logtime.focus()}}" type="text" placeholder="服务器IP"/>
+				<label for="txt_logtime" class="col-lg-3 text-center">时间</label><input id="txt_logtime" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_content.focus()}}" type="text" placeholder="时间"/>
+				<label for="txt_content" class="col-lg-3 text-center">内容</label><input id="txt_content" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_funcname.focus()}}" type="text" placeholder="内容"/>
+				<label for="txt_funcname" class="col-lg-3 text-center">功能名</label><input id="txt_funcname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_pckname.focus()}}" type="text" placeholder="功能名"/>
+				<label for="txt_pckname" class="col-lg-3 text-center">包名</label><input id="txt_pckname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_clientip.focus()}}" type="text" placeholder="包名"/>
+				<label for="txt_clientip" class="col-lg-3 text-center">客户IP</label><input id="txt_clientip" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_logid.focus()}}" type="text" placeholder="客户IP"/>
+				<label for="txt_logid" class="col-lg-3 text-center">日志ID</label><input id="txt_logid" class="form-control col-lg-3" disabled="disabled" onkeypress="{ if (event.keyCode==13) {SaveModal.focus()}}" type="text" placeholder="日志ID"/>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal" onclick="serverlogAddTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>清空</button>
+				<button type="button" class="btn btn-primary" id="serverlogSaveModal" onclick="serverlogCommitTable()"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+			</div>
+		</div>
+	</div>
+</div> -->
