@@ -57,12 +57,11 @@ else
   ./configure --prefix=/opt/software/openGauss --enable-thread-safety --gcc-version=10.3.1 CC=g++ CFLAGS='-O2 -g3' --with-3rdpartydir=/root/ngxdb-for-opengauss/binarylibs --with-libxml --enable-cassert --with-readline --with-python
   make && make install
   useradd opengauss
-  passwd opengauss
-  gao@12345!
-  gao@12345!
+  echo "gao@12345!" | passwd -stdin opengauss
+  cp ../extension/*.* /opt/software/openGauss/share/postgresql/extension/
   chown opengauss /opt/software/openGauss -R
   lines=$(grep -c "export GAUSSHOME=/opt/software/openGauss" /etc/profile)
-  if [ $lines =0 ]; then
+  if [ $lines = 0 ]; then
     echo 'export GAUSSHOME=/opt/software/openGauss'>>/home/opengauss/.bashrc
     echo 'export GAUSSDATA=$GAUSSHOME/data'>>/home/opengauss/.bashrc
     echo 'export PGDATA=$GAUSSDATA'>>/home/opengauss/.bashrc
@@ -73,15 +72,14 @@ else
     echo 'export PATH=$GAUSSHOME/bin:$PATH'>>/etc/profile
     source /etc/profile
   fi
-  cp ../extension/*.* /opt/software/openGauss/share/postgresql/extension/
-  su opengauss
+  su - opengauss >> EOF
   gs_initdb --nodename=gao
-  gs_ctl start  
-  gsql
+  gs_ctl start 
+  gsql -d postgres
+  alter role "opengauss" password 'gao@12345!';
   create extension plpython3u;
-  create extension opengauss_login;
+  create extension opengauss_ngx;
   \q
-  exit
   cd ..
 fi
 
