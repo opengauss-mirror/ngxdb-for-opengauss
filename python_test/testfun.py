@@ -13,7 +13,7 @@ import urllib3
 
 
 
-url='http://192.168.1.96:80/func/'
+url='http://127.0.0.1:80/func/'
 loginname='admin'  #账号1
 passward='123456' #密码1
 
@@ -1427,7 +1427,7 @@ def test_shop_category():
     conn.commit()
     time.sleep(1)
 
-conn=psycopg2.connect(database="postgres", user="gm", password="gao@12345", host="192.168.1.96", port="5432")
+conn=psycopg2.connect(database="postgres", user="gm", password="gao@12345", host="127.0.0.1", port="5432")
 cur=conn.cursor()
 icount=0
 isucc=0

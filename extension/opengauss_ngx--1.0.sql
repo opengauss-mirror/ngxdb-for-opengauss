@@ -1,18 +1,20 @@
-drop schema if exists "conn" cascade;
-drop schema if exists "sysinfo" cascade;
-drop schema if exists "gm" cascade;
-
 do
 $do$
 BEGIN
   IF NOT EXISTS ( SELECT * FROM pg_user WHERE usename = 'conn') THEN
     CREATE user conn  PASSWORD 'Gao@12345';
+	DROP SCHEMA conn;
   END IF;
   IF NOT EXISTS ( SELECT * FROM pg_user WHERE usename = 'gm') THEN
     CREATE user gm  PASSWORD 'Gao@12345';
+	DROP SCHEMA gm;
   END IF;
 END
 $do$;
+
+drop schema if exists "conn" cascade;
+drop schema if exists "sysinfo" cascade;
+drop schema if exists "gm" cascade;
 
 --
 --

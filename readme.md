@@ -35,7 +35,7 @@ readme.md
 
 ## 二、安装步骤
  本安装在openeuler22下测试通过，其它操作系统也许会报错。
- 下载源码后，下述安装代码都在install.sh里，可以直接运行install.sh完成安装
+ 下载源码后，后述安装代码都在install.sh里，可以直接运行install.sh完成安装
 ### 1、下载源码
 ```linux
 git clone -b 1.0 --single-branch https://gitee.com/opengauss/ngxdb-for-opengauss.git
@@ -211,6 +211,7 @@ python python_test\testfun.py
 ### 6、其它
 运行QT
  运行QT，打开QT目录下的qt.pro
+ 
 运行django服务
 ```
 #运行django

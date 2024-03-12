@@ -88,7 +88,7 @@ fi
 su - opengauss << EOF
 gs_initdb --nodename=gao
 sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /opt/software/openGauss/data/postgresql.conf
-sed -i 's/#password_encryption_type=2/password_encryption_type=1/' /opt/software/openGauss/data/postgresql.conf
+sed -i 's/#password_encryption_type = 2/password_encryption_type = 1/' /opt/software/openGauss/data/postgresql.conf
 sed -i '/# IPv6/i\host    all             all             0.0.0.0/0            md5' /opt/software/openGauss/data/pg_hba.conf
 gs_ctl start 
 gsql -d postgres
@@ -101,16 +101,20 @@ EOF
 
 #下载并编译安装nginx，修改nginx配置文件
 nginx="nginx-1.24.0"
+export GAUSSHOME=/opt/software/openGauss
+export LD_LIBRARY_PATH=$GAUSSHOME/lib:$LD_LIBRARY_PATH
+export PATH=$GAUSSHOME/bin:$PATH
 if [ -d "/usr/local/nginx" ]; then
   echo "nginx exist"
 else
-  wget http://nginx.org/download/${nginx}.tar.gz
+  if [ ! -f "${nginx}.tar.gz" ]; then
+    wget http://nginx.org/download/${nginx}.tar.gz
+  fi
   tar -zxvf nginx-1.24.0.tar.gz 
   cd $nginx
   ./configure --add-module=../opengauss --prefix=/usr/local/nginx
   make && make install
-  cp ../bootstrap /usr/local/nginx/html/ -r
-  cd ..
+  cp bootstrap /usr/local/nginx/html/ -r
   sed -i '/error_page/i\        location /func {' /usr/local/nginx/conf/nginx.conf
   sed -i '/error_page/i\            opengaussconn "host=127.0.0.1 dbname=opengauss user=conn password=Gao12345 port=5432";' /usr/local/nginx/conf/nginx.conf     
   sed -i '/error_page/i\            rewrite ^func/(.*)$ /$1 break;' /usr/local/nginx/conf/nginx.conf
@@ -124,9 +128,6 @@ else
 fi
 
 #启动nginx
-GAUSSHOME=/opt/software/openGauss
-LD_LIBRARY_PATH=$GAUSSHOME/lib:$LD_LIBRARY_PATH
-PATH=$GAUSSHOME/bin:$PATH
 /usr/local/nginx/sbin/nginx
 #运行接口测试
 python python_test/testfun.py
