@@ -1,0 +1,247 @@
+<script>
+	var actionstableoption={
+			toolbar: '#actionstoolbar',//工具按钮用哪个容器
+			clickToSelect: true,// 单击行即可以选中
+			singleSelect: true, //设置true禁止多选
+			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+            showPaginationSwitch: true,
+			showExport: true,
+			exportDataType: 'all',
+			exportTypes: ['doc', 'excel'], //导出文件类型
+			showToggle: true,  //是否显示视图切换按钮
+			showRefresh: true,// 是否显示刷新按钮
+			showColumns: true,//是否显示所有的列
+			search: true, // 开启搜索功能
+			pagination: true,// 开启分页功能
+			sortName: "actionid", // 设置默认排序为 name
+			columns: [{
+				field: "checked",
+				checkbox: true
+				}, {
+				field: "code",
+				title: "编码",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "actionurl",
+				title: "权限路径",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "params",
+				title: "参数",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "description",
+				title: "说明",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "actionname",
+				title: "权限名",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "actionid",
+				title: "权限编号",
+				visible: false,
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "isused",
+				title: "使用",
+				align: "center",
+				formatter : function (value, row, index) { switch(value) {case 1 :return "是"; default : return "否"}},
+				valign: "middle"
+			}],
+			onlClickCell: function (field,value,row) {
+					row.checked=true;
+			},
+			onCheck: function (row) {
+				if (actions.includes("176")) {
+					console.log(row)
+					switch(row.isused) {
+						case 0:$("#178").text("显示");break;
+						case 1:$("#178").text("隐藏");break;
+						default:$("#178").text("显示");break;
+					}
+					actionsEditTable(row);
+				}
+			}
+		}
+
+	$(function() {
+		checkaction(new Array("175","176","178","179","180"));
+
+		$("#actionsQueryTable").bootstrapTable(actionstableoption);
+		$("#actionsQueryTable").bootstrapTable('showLoading');
+
+		actionsQueryTable();
+		$(".selectpicker").selectpicker("refresh");
+		$("#actionsmyModal").on("shown.bs.modal",function(e){ if ($("#txt_actionid").attr("disabled")) { $("#txt_SaveModal").focus() } else {$("#txt_actionid").focus()}; });
+	});
+	
+	function actionsAddTable() {//新增
+		$("#txt_code").val("");
+		$("#txt_actionurl").val("");
+		$("#txt_params").val("");
+		$("#txt_description").val("");
+		$("#txt_actionname").val("");
+		$("#txt_actionid").val("");
+		$("#txt_actionid").attr("disabled",false);
+        $("#actionsmyModalLabel").html("新增");
+        
+	};
+	
+	function actionsEditTable(row) {
+		if (row==null) {
+			if ($("#actionsQueryTable").bootstrapTable('getSelections').length == 0) {
+				alert("请先选择要修改的数据!");
+				return;
+			};
+			row=$("#actionsQueryTable").bootstrapTable('getSelections')[0];
+		}
+		if (row.code!=null) { $("#txt_code").val(row.code) } else { $("#txt_code").val("")};
+		if (row.actionurl!=null) { $("#txt_actionurl").val(row.actionurl) } else { $("#txt_actionurl").val("")};
+		if (row.params!=null) { $("#txt_params").val(row.params) } else { $("#txt_params").val("")};
+		if (row.description!=null) { $("#txt_description").val(row.description) } else { $("#txt_description").val("")};
+		if (row.actionname!=null) { $("#txt_actionname").val(row.actionname) } else { $("#txt_actionname").val("")};
+		if (row.actionid!=null) { $("#txt_actionid").val(row.actionid) } else { $("#txt_actionid").val("")};
+		$("#txt_actionid").attr("disabled",true);
+        $("#actionsmyModalLabel").html("修改");
+        
+	};
+	
+	function actionsCommitTable() {
+		var actionscommitdata={
+			code:$("#txt_code").val(),
+			actionurl:$("#txt_actionurl").val(),
+			params:$("#txt_params").val(),
+			description:$("#txt_description").val(),
+			actionname:$("#txt_actionname").val(),
+			actionid:$("#txt_actionid").val(),
+			token:token,
+		};
+		if ($("#actionsmyModalLabel").html()=="新增") {
+			ajaxarr([{
+				url:"sysinfo/actions_add",
+				title:"新增数据失败！",
+				data:actionscommitdata,
+				func:function(data) {
+					alert("新增数据成功！id："+data.info.id);
+					actionsQueryTable(data.info.id);
+					actionsAddTable();
+				}
+			}]);
+		} else {
+			ajaxarr([{
+				url:"sysinfo/actions_edit",
+				title:"修改数据失败！",
+				data:actionscommitdata,
+				func:function(data) {
+					alert("修改数据成功！");
+					actionsQueryTable(actionscommitdata.actionid);
+					
+				}
+			}]);		
+		};
+	};
+	
+	function actionsDelTable() {
+        var row = $("#actionsQueryTable").bootstrapTable('getSelections')[0];
+        if(row == null) {
+            alert("请先选择要删除的数据!");
+            return;
+        };       
+		if(confirm( "您真的确定要删除吗？") == true) {
+			ajaxarr([{
+				url: "sysinfo/actions_del" ,
+				title: "删除数据失败！",
+				data:{token:token,actionid : row.actionid },
+				func: function(data) {
+					alert("删除成功！");
+					actionsQueryTable();
+				}
+			}]);
+		}
+	};
+	
+	function actionsUndelTable() {
+        var row = $("#actionsQueryTable").bootstrapTable('getSelections')[0];
+        if(row == null) {
+            alert("请先选择要恢复的数据!");
+            return;
+        };       
+		if(confirm( "您真的确定要恢复吗？") == true) {
+			ajaxarr([{
+				url: "sysinfo/actions_undel" ,
+				title: "恢复数据失败！",
+				data:{token:token,actionid : row.actionid },
+				func: function(data) {
+					alert("恢复成功！");
+					actionsQueryTable();
+				}
+			}]);
+		}
+	}
+
+
+	function actionsQueryTable(id) {
+		$("#actionsQueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"sysinfo/actions_query",
+				title:"获取权限名信息失败，请刷新！",
+				data:{token:token},
+				func: function (data) {
+					if (data.info.total==0) { $("#actionsQueryTable").bootstrapTable("destroy").bootstrapTable(actionstableoption); } 
+					else {	
+						$("#actionsQueryTable").bootstrapTable('load', data.info.rows); 
+						if (id) {
+							for (var i=data.info.total;i>0;i--) {
+								if (data.info.rows[i-1].actionid==id) {
+									$("#actionsQueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#actionsQueryTable").bootstrapTable('getOptions').pageSize));
+									$("#actionsQueryTable").bootstrapTable('checkBy',{field:'actionid',values:[data.info.rows[i-1].actionid]})
+									break;
+								};							
+							}
+						} else {
+							$("#actionsQueryTable").bootstrapTable('checkBy',{field:'actionid',values:[data.info.rows[0].actionid]})
+							actionsEditTable(data.info.rows[0]);
+						}
+					};
+					$("#actionsQueryTable").bootstrapTable('hideLoading');
+				}
+		}]);		
+	};
+</script>
+<table id="actionsQueryTable" class='table-striped'></table>
+<!-- <div id="actionstoolbar" class="btn-group">
+	<button id="175" type="button" style="display:none;" class="btn btn-default" onclick="actionsAddTable()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>新增</button>
+	<button id="176" type="button" style="display:none;" class="btn btn-default" onclick="actionsEditTable()"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改</button>
+	<button id="178" type="button" style="display:none;" class="btn btn-default" onclick="actionsDelTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>删除</button>
+	<button id="180" type="button" style="display:none;" class="btn btn-default" onclick="actionsUndelTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>恢复</button>
+	<button id="179" type="button" style="display:none;" class="btn btn-default" onclick="actionsQueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
+</div>
+<div class="row" id="actionsmyModal" tabindex="-1" >
+	<div class="col-12" >
+		<div class="modal-content" >
+			<div class="modal-header">
+				<h4 class="modal-title" id="actionsmyModalLabel">新增</h4>
+				
+			</div>
+			<div class="modal-body form-inline">
+				<label for="txt_code" class="col-lg-3 text-center">编码</label><input id="txt_code" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_actionurl.focus()}}" type="text" placeholder="编码"/>
+				<label for="txt_actionurl" class="col-lg-3 text-center">权限路径</label><input id="txt_actionurl" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_params.focus()}}" type="text" placeholder="权限路径"/>
+				<label for="txt_params" class="col-lg-3 text-center">参数</label><input id="txt_params" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_description.focus()}}" type="text" placeholder="参数"/>
+				<label for="txt_description" class="col-lg-3 text-center">说明</label><input id="txt_description" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_actionname.focus()}}" type="text" placeholder="说明"/>
+				<label for="txt_actionname" class="col-lg-3 text-center">权限名</label><input id="txt_actionname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_actionid.focus()}}" type="text" placeholder="权限名"/>
+				<label for="txt_actionid" class="col-lg-3 text-center">权限编号</label><input id="txt_actionid" class="form-control col-lg-3" disabled="disabled" onkeypress="{ if (event.keyCode==13) {SaveModal.focus()}}" type="text" placeholder="权限编号"/>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal" onclick="actionsAddTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>清空</button>
+				<button type="button" class="btn btn-primary" id="actionsSaveModal" onclick="actionsCommitTable()"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+			</div>
+		</div>
+	</div>
+</div> -->

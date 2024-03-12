@@ -1,0 +1,512 @@
+<script>
+	var detailoption={
+					sidePagination:"client",
+					showExport: false,
+					clickToSelect: true,// 单击行即可以选中
+					singleSelect: true, //设置true禁止多选
+					exportDataType: 'all',
+					exportTypes: ['doc', 'excel'], //导出文件类型
+					showToggle: true,  //是否显示视图切换按钮
+					showRefresh: false,// 是否显示刷新按钮
+					showColumns: true,//是否显示所有的列
+					showPaginationSwitch: true,
+					columns:[{
+						field : "button",
+						title : '<button class="Add btn btn-default" onclick="AddDetailTable($(this).val(),$(this).parent().parent().parent().parent().parent().attr('+"'id'"+'))">新增</button>',
+						formatter : '<button class="Edit btn btn-default">修改</button><button class="Del btn btn-default">删除</button>',
+						events:{"click .Edit": function (e, value, row, index) { EditDetailTable(row,$(this).attr("$el").attr("id"),index)},"click .Del": function (e, value, row, index) { DelDetailTable(row,$(this).attr("$el").attr("id"),index)}},
+						visible: true,
+						align: "center",
+						valign: "middle"
+						}, {
+						field: "sysorgid",
+						title: "系统部门id",
+						visible: false,
+						visible: false,
+						align: "center",
+						valign: "middle"
+						}, {
+						field: "sysorgname",
+						title: "部门名称",
+						align: "center",
+						valign: "middle"
+						}, {
+						field: "operatorid",
+						title: "操作员id",
+						visible: false,
+						align: "center",
+						valign: "middle"
+			}],
+					onDblClickRow: function (row,$element) {
+						if (actions.includes("%var_detailaction2%")) {
+							EditDetailTable(row,$element.parent().parent().attr("id"),$element.data("index"));
+						}
+					}
+				};
+	var tableoption={
+			toolbar: '#toolbar',//工具按钮用哪个容器
+			clickToSelect: true,// 单击行即可以选中
+			singleSelect: true, //设置true禁止多选
+			sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+            detailView: true,                   //是否显示父子表
+			showExport: true,
+			exportDataType: 'all',
+			exportTypes: ['doc', 'excel'], //导出文件类型
+			showToggle: true,  //是否显示视图切换按钮
+			showRefresh: true,// 是否显示刷新按钮
+			showColumns: true,//是否显示所有的列
+			search: true, // 开启搜索功能
+			pagination: true,// 开启分页功能
+			sortName: "operatorid", // 设置默认排序为 name
+			columns: [{
+				field: "checked",
+				checkbox: true
+				}, {
+				field: "deltime",
+				title: "删除时间",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "deloperator",
+				title: "删除人员",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "updatetime",
+				title: "修改时间",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "updateoperator",
+				title: "修改人员",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "createtime",
+				title: "创建时间",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "createoperator",
+				title: "创建人员",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "tokeninterval",
+				title: "令牌时长默认180分钟",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "tokentype",
+				title: "令牌类型1默认单人登录2多人登录",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "birthday",
+				title: "生日",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "nickname",
+				title: "昵称",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "headimgurl",
+				title: "头像url",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "upcode",
+				title: "推广上级id",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "mycode",
+				title: "推广码",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "isused",
+				title: "使用",
+				align: "center",
+				formatter : function (value, row, index) { switch(value) {case 1 :return "是"; default : return "否"}},
+				valign: "middle"
+				}, {
+				field: "memo",
+				title: "备注",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "tokentime",
+				title: "令牌时间",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "tokenkey",
+				title: "令牌",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "pass",
+				title: "密码",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "accounts",
+				title: "帐号",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "phone",
+				title: "电话",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "sex",
+				title: "性别",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "operatorname",
+				title: "员工姓名",
+				align: "center",
+				valign: "middle"
+				}, {
+				field: "operatorid",
+				title: "员工编号",
+				visible: false,
+				align: "center",
+				valign: "middle"
+			}],
+			onDblClickRow: function (row) {
+				if (actions.includes("145")) {
+					row.checked=true;
+					EditTable(row);
+				}
+			},
+			onExpandRow: function (index, row, $detail){
+				var cur_table = $detail.html('<table class="table-striped"></table>').find('table');
+				$(cur_table).bootstrapTable(detailoption);
+				if (row.sysoperorgjson!=null) { $(cur_table).bootstrapTable('load', row.sysoperorgjson); }
+				// cur_table.find("button.Add:first").val(row.operatorid);
+				cur_table.find("button.Add").hide()
+				cur_table.find("button.Edit").hide()
+				cur_table.find("button.Del").hide()
+				// if (!actions.includes("%var_detailaction1%")) { cur_table.find("Add").hide()};
+				// if (!actions.includes("%var_detailaction2%")) { cur_table.find("Edit").hide()};
+				// if (!actions.includes("%var_detailaction3%")) { cur_table.find("Del").hide()};
+				// if (!(actions.includes("%var_detailaction1%")||actions.includes("%var_detailaction2%")||actions.includes("%var_detailaction3%"))) {cur_table.bootstrapTable("hideColumn","button")};
+			}
+		};
+	$(function() {
+		checkaction(new Array("144","145","147","148"));		
+		$("#DetailTable").bootstrapTable(detailoption);
+		$("#QueryTable").bootstrapTable(tableoption);
+		$("#QueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"sysinfo/sysorg_query",
+				data:{token:token,isused:1},
+				title:"获取部门名称信息失败！",
+				func: function(data) {
+					setting={view: {selectedMulti: false,showIcon: true },
+						data: {	key: { name: "sysorgname"}, simpleData: {	enable: true,	idKey: "sysorgid",	pIdKey: "upid",	rootPId: 0}	},
+						onDblClick: function(event, treeId, treeNode) {
+							$("#detail_sysorgid").val(treeNode.sysorgname);
+							$("#detail_sysorgid").data("value",treeNode.sysorgname);
+							$("#sysorgidModal").modal("hide");
+						}
+					}
+					$.fn.zTree.init($("#Tree_sysorgid"),setting , data.info.rows);	
+					$("#sysorgidModal").on("hidden.bs.modal", function(e) { $("body").addClass("modal-open");  });
+				}
+		}]);
+		QueryTable();
+		$(".selectpicker").selectpicker("refresh");
+		$("#myModal").on("shown.bs.modal",function(e){ if ($("#txt_operatorid").attr("disabled")) { $("#txt_SaveModal").focus() } else {$("#txt_operatorid").focus()}; });
+	});
+	
+	function AddTable() {//新增
+		$("#txt_tokeninterval").val("");
+		$("#txt_tokentype").val("");
+		$("#txt_birthday").val("");
+		$("#txt_nickname").val("");
+		$("#txt_headimgurl").val("");
+		$("#txt_upcode").val("");
+		$("#txt_mycode").val("");
+		$("#txt_memo").val("");
+		$("#txt_tokentime").val("");
+		$("#txt_tokenkey").val("");
+		$("#txt_pass").val("");
+		$("#txt_accounts").val("");
+		$("#txt_phone").val("");
+		$("#txt_sex").val("");
+		$("#txt_operatorname").val("");
+		$("#txt_operatorid").attr("disabled",false);
+		$("#DetailTable").bootstrapTable('destroy').bootstrapTable(detailoption);
+		if (actions.includes("%var_detailaction1%")) { $("#DetailTable").bootstrapTable("showColumn","button"); $("#DetailTable").find("Add").show()};
+		if (actions.includes("%var_detailaction2%")) { $("#DetailTable").bootstrapTable("showColumn","button"); $("#DetailTable").find("Edit").show()};
+		if (actions.includes("%var_detailaction3%")) { $("#DetailTable").bootstrapTable("showColumn","button"); $("#DetailTable").find("Del").show()};
+        $("#myModalLabel").html("新增");
+        $("#myModal").modal();
+	};
+	
+	function EditTable(row) {
+		if (row==null) {
+			if ($("#QueryTable").bootstrapTable('getSelections').length == 0) {
+				alert("请先选择要修改的数据!");
+				return;
+			};
+			row=$("#QueryTable").bootstrapTable('getSelections')[0];
+		}
+		if (row.tokeninterval!=null) { $("#txt_tokeninterval").val(row.tokeninterval) } else { $("#txt_tokeninterval").val("")};
+		if (row.tokentype!=null) { $("#txt_tokentype").val(row.tokentype) } else { $("#txt_tokentype").val("")};
+		if (row.birthday!=null) { $("#txt_birthday").val(row.birthday) } else { $("#txt_birthday").val("")};
+		if (row.nickname!=null) { $("#txt_nickname").val(row.nickname) } else { $("#txt_nickname").val("")};
+		if (row.headimgurl!=null) { $("#txt_headimgurl").val(row.headimgurl) } else { $("#txt_headimgurl").val("")};
+		if (row.upcode!=null) { $("#txt_upcode").val(row.upcode) } else { $("#txt_upcode").val("")};
+		if (row.mycode!=null) { $("#txt_mycode").val(row.mycode) } else { $("#txt_mycode").val("")};
+		if (row.memo!=null) { $("#txt_memo").val(row.memo) } else { $("#txt_memo").val("")};
+		if (row.tokentime!=null) { $("#txt_tokentime").val(row.tokentime) } else { $("#txt_tokentime").val("")};
+		if (row.tokenkey!=null) { $("#txt_tokenkey").val(row.tokenkey) } else { $("#txt_tokenkey").val("")};
+		if (row.pass!=null) { $("#txt_pass").val(row.pass) } else { $("#txt_pass").val("")};
+		if (row.accounts!=null) { $("#txt_accounts").val(row.accounts) } else { $("#txt_accounts").val("")};
+		if (row.phone!=null) { $("#txt_phone").val(row.phone) } else { $("#txt_phone").val("")};
+		if (row.sex!=null) { $("#txt_sex").val(row.sex) } else { $("#txt_sex").val("")};
+		if (row.operatorname!=null) { $("#txt_operatorname").val(row.operatorname) } else { $("#txt_operatorname").val("")};
+		$("#txt_operatorid").attr("disabled",true);
+		if (row.sysoperorgjson!=null) {$("#DetailTable").bootstrapTable('load', JSON.parse(JSON.stringify(row.sysoperorgjson)));} else{$("#DetailTable").bootstrapTable('destroy').bootstrapTable(detailoption);}
+        $("#DetailTable").find("button.Add:first").val(row.operatorid);
+		$("#myModalLabel").html("修改");
+        $("#myModal").modal();
+	};
+	
+	function CommitTable() {
+		var commitdata={
+			tokeninterval:$("#txt_tokeninterval").val(),
+			tokentype:$("#txt_tokentype").val(),
+			birthday:$("#txt_birthday").val(),
+			nickname:$("#txt_nickname").val(),
+			headimgurl:$("#txt_headimgurl").val(),
+			upcode:$("#txt_upcode").val(),
+			mycode:$("#txt_mycode").val(),
+			memo:$("#txt_memo").val(),
+			tokentime:$("#txt_tokentime").val(),
+			tokenkey:$("#txt_tokenkey").val(),
+			pass:$("#txt_pass").val(),
+			accounts:$("#txt_accounts").val(),
+			phone:$("#txt_phone").val(),
+			sex:$("#txt_sex").val(),
+			operatorname:$("#txt_operatorname").val(),
+			token:token,
+			sysoperorgjson:JSON.stringify($("#DetailTable").bootstrapTable("getData")),
+		};
+		if ($("#myModalLabel").html()=="新增") {
+			ajaxarr([{
+				url:"sysinfo/operinfoorg_add",
+				title:"新增数据失败！",
+				data:commitdata,
+				func:function(data) {
+					alert("新增数据成功！id："+data.info.id);
+					QueryTable(commitdata.operatorid);
+					$("#myModal").modal("hide");
+				}
+			}]);
+		} else {
+			ajaxarr([{
+				url:"sysinfo/operinfoorg_edit",
+				title:"修改数据失败！",
+				data:commitdata,
+				func:function(data) {
+					alert("修改数据成功！");
+					QueryTable(commitdata.operatorid);
+					$("#myModal").modal("hide");
+				}
+			}]);		
+		};
+	};
+	
+	function DelTable() {
+		var row=$("#QueryTable").bootstrapTable('getSelections')[0];
+		if (row==null) {
+			alert("请先选择要显示/隐藏的数据!");
+			return;
+		}
+		var info=(row.isused==0) ? "显示" : "隐藏" ;
+		if(confirm( "您真的确定要"+info+"吗？") == true) {
+			ajaxarr([{
+				url: "sysinfo/operinfoorg_del",
+				title: info + "数据失败！",
+				data:{operatorid:row.operatorid,isused:(row.isused==0) ? 1 : null},
+				func: function(data) {
+					alert(info+"成功！");
+                    QueryTable();
+				}
+			}]);
+		}
+	};
+	
+	function QueryTable(id) {
+		$("#QueryTable").bootstrapTable('showLoading');
+		ajaxarr([{
+				url:"sysinfo/operinfoorg_query",
+				title:"获取员工信息失败，请刷新！",
+				data:{token:token},
+				func: function (data) {
+					if (data.info.total==0) { $("#QueryTable").bootstrapTable("destroy").bootstrapTable(tableoption); } 
+					else {	
+						$("#QueryTable").bootstrapTable('load', data.info.rows); 
+						if (id) {
+							for (var i=data.info.total;i>0;i--) {
+								if (data.info.rows[i-1].operatorid==id) {
+									$("#QueryTable").bootstrapTable('selectPage', Math.ceil(i/$("#QueryTable").bootstrapTable('getOptions').pageSize));
+									i=i%$("#QueryTable").bootstrapTable('getOptions').pageSize-1;	
+									$("#QueryTable").bootstrapTable('expandRow', (i>=0) ? i : i + $("#QueryTable").bootstrapTable('getOptions').pageSize);
+									break;
+								};							
+							}
+						}
+					};
+					$("#QueryTable").bootstrapTable('hideLoading');
+				}
+		}]);		
+	};
+	
+	function AddDetailTable(data,id) {
+		$("#detail_sysorgid").val("");$("#detail_sysorgid").data("value","");
+		$("#detail_sysorgid").attr("disabled",false);
+		$("#detail_sysorgid").selectpicker("val","");
+		$("#detail_operatorid").val("");
+		$("#detail_operatorid").attr("disabled",false);
+		if (id=="DetailTable") { $("#SaveDetailModal").text("确定") } else { $("#SaveDetailModal").text("保存") };
+        $("#myDetailModalLabel").html("新增");
+        $("#myDetailModal").modal();
+	}
+
+	function EditDetailTable(row,id,index) {
+		if (row==null) {
+			if ($("#QueryTable").bootstrapTable('getSelections').length == 0) {
+				alert("请先选择要修改的数据!");
+				return;
+			};
+			var row=$("#QueryTable").bootstrapTable('getSelections')[0];
+		}
+		if (row.sysorgid!=null) {
+		$("#detail_sysorgid").attr("disabled",true);
+			if (row.upid!=0) {
+				expendp($.fn.zTree.getZTreeObj("Tree_sysorgid"),$.fn.zTree.getZTreeObj("Tree_sysorgid").getNodeByParam("sysorgid",row.sysorgid));
+				$.fn.zTree.getZTreeObj("Tree_sysorgid").selectNode($.fn.zTree.getZTreeObj("Tree_sysorgid").getNodeByParam("sysorgid",row.sysorgid),true);
+			};
+			$("#detail_sysorgid").val(row.部门名称);
+			$("#detail_sysorgid").data("value",row.sysorgid);
+		} else {
+			$("#detail_sysorgid").val("");
+			$("#detail_sysorgid").data("value","");
+		};
+		if (row.sysorgid!=null) { $("#detail_sysorgid").selectpicker("val",row.sysorgid) } else { $("#detail_sysorgid").selectpicker("val","")};
+		if (row.operatorid!=null) { $("#detail_operatorid").val(row.operatorid) } else { $("#detail_operatorid").val("")};
+		$("#detail_operatorid").attr("disabled",true);
+		if (id=="DetailTable") { $("#SaveDetailModal").text("确定") } else { $("#SaveDetailModal").text("保存") };
+		$("#SaveDetailModal").val(index);
+        $("#myDetailModalLabel").html("修改");
+        $("#myDetailModal").modal();
+	}
+
+	function CommitDetailTable(index) {
+		var commitdata={
+			sysorgid:($("#detail_sysorgid").data("value")=="") ? null : $("#detail_sysorgid").data("value"),
+			sysorgname:($("#detail_sysorgid").val()=="") ? null : $("#detail_sysorgid").val(),
+			operatorid:($("#detail_operatorid").val()=="") ? null : $("#detail_operatorid").val(),
+			token:token,
+		};
+		if ($("#myDetailModalLabel").html()=="新增") {
+			$("#DetailTable").bootstrapTable("load",$("#DetailTable").bootstrapTable("getData").push(commitdata));
+		} else {
+			var data=$("#DetailTable").bootstrapTable("getData");
+			data.splice(index,1,commitdata);console.log(data);
+			if (data!=null) { $("#DetailTable").bootstrapTable("load",data) } else { $("#DetailTable").bootstrapTable('destroy').bootstrapTable(detailoption) };
+		};
+		$('#myDetailModal').modal('hide');
+	};
+
+	function DelDetailTable(index) {
+		var data=$("#DetailTable").bootstrapTable("getData");
+		data.splice(index,1);
+		if (data!=null) { $("#DetailTable").bootstrapTable("load",data) } else { $("#DetailTable").bootstrapTable('destroy').bootstrapTable(detailoption) };
+	}
+
+</script>
+<table id="QueryTable" class='table-striped'></table>
+<div id="toolbar" class="btn-group">
+	<button id="144" type="button" style="display:none;" class="btn btn-default" onclick="AddTable()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>新增</button>
+	<button id="145" type="button" style="display:none;" class="btn btn-default" onclick="EditTable()"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改</button>
+	<button id="147" type="button" style="display:none;" class="btn btn-default" onclick="DelTable()"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>显示/隐藏</button>
+	<button id="148" type="button" style="display:none;" class="btn btn-default" onclick="QueryTable()"><span class="glyphicon glyphico-query" aria-hidden="true"></span>查询</button>
+</div>
+<div class="modal fade" id="myModal" tabindex="-1" >
+	<div class="modal-dialog" >
+		<div class="modal-content" >
+			<div class="modal-header">
+				<h4 class="modal-title" id="myModalLabel"></h4>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			</div>
+			<div class="modal-body form-inline">
+				<label for="txt_tokeninterval" class="col-lg-3 text-center">令牌时长默认180分钟</label><input id="txt_tokeninterval" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_tokentype.focus()}}" type="text" placeholder="令牌时长默认180分钟"/>
+				<label for="txt_tokentype" class="col-lg-3 text-center">令牌类型1默认单人登录2多人登录</label><input id="txt_tokentype" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_birthday.focus()}}" type="text" placeholder="令牌类型1默认单人登录2多人登录"/>
+				<label for="txt_birthday" class="col-lg-3 text-center">生日</label><input id="txt_birthday" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_nickname.focus()}}" type="text" placeholder="生日"/>
+				<label for="txt_nickname" class="col-lg-3 text-center">昵称</label><input id="txt_nickname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_headimgurl.focus()}}" type="text" placeholder="昵称"/>
+				<label for="txt_headimgurl" class="col-lg-3 text-center">头像url</label><input id="txt_headimgurl" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_upcode.focus()}}" type="text" placeholder="头像url"/>
+				<label for="txt_upcode" class="col-lg-3 text-center">推广上级id</label><input id="txt_upcode" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_mycode.focus()}}" type="text" placeholder="推广上级id"/>
+				<label for="txt_mycode" class="col-lg-3 text-center">推广码</label><input id="txt_mycode" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_memo.focus()}}" type="text" placeholder="推广码"/>
+				<label for="txt_memo" class="col-lg-3 text-center">备注</label><input id="txt_memo" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_tokentime.focus()}}" type="text" placeholder="备注"/>
+				<label for="txt_tokentime" class="col-lg-3 text-center">令牌时间</label><input id="txt_tokentime" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_tokenkey.focus()}}" type="text" placeholder="令牌时间"/>
+				<label for="txt_tokenkey" class="col-lg-3 text-center">令牌</label><input id="txt_tokenkey" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_pass.focus()}}" type="text" placeholder="令牌"/>
+				<label for="txt_pass" class="col-lg-3 text-center">密码</label><input id="txt_pass" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_accounts.focus()}}" type="text" placeholder="密码"/>
+				<label for="txt_accounts" class="col-lg-3 text-center">帐号</label><input id="txt_accounts" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_phone.focus()}}" type="text" placeholder="帐号"/>
+				<label for="txt_phone" class="col-lg-3 text-center">电话</label><input id="txt_phone" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_sex.focus()}}" type="text" placeholder="电话"/>
+				<label for="txt_sex" class="col-lg-3 text-center">性别</label><input id="txt_sex" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_operatorname.focus()}}" type="text" placeholder="性别"/>
+				<label for="txt_operatorname" class="col-lg-3 text-center">员工姓名</label><input id="txt_operatorname" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {txt_operatorid.focus()}}" type="text" placeholder="员工姓名"/>
+			</div>
+			<table id="DetailTable" class="table-striped"></table>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" id="SaveModal" onclick="CommitTable()"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+				<button type="button" class="btn btn-default" data-dismiss="modal" ><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>关闭</button>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="modal fade" id="myDetailModal" tabindex="-1" >
+	<div class="modal-dialog" >
+		<div class="modal-content" >
+			<div class="modal-header">
+				<h4 class="modal-title" id="myDetailModalLabel"></h4>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			</div>
+			<div class="modal-body form-inline">
+				<label for="detail_sysorgid" class="col-lg-3 text-center">部门名称</label><input id="detail_sysorgid" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {detail_operatorid.focus()}}" data-target="#sysorgidModal" data-toggle="modal" type="text" placeholder="系统部门id"/>
+				<label for="detail_operatorid" class="col-lg-3 text-center">操作员id</label><input id="detail_operatorid" class="form-control col-lg-3" onkeypress="{ if (event.keyCode==13) {SaveDetailModal.focus()}}" type="text" placeholder="操作员id"/>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" id="SaveDetailModal" onclick="CommitDetailTable($(this).val())"><span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>保存</button>
+				<button type="button" class="btn btn-default" data-dismiss="modal" ><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>关闭</button>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="modal fade" id="sysorgidModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header" >
+				<h4 class="modal-title" >选择系统部门id</h4>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			</div>
+			<div class="modal-body">
+				<ul id="Tree_sysorgid" class="ztree" ></ul>
+			</div>
+			<div class="modal-footer" >
+				<button type="button" class="btn btn-primary" data-dismiss="modal" onclick="{$('#detail_sysorgid').val($.fn.zTree.getZTreeObj('Tree_sysorgid').getSelectedNodes()[0].sysorgname);$('#detail_sysorgid').data('value',$.fn.zTree.getZTreeObj('Tree_sysorgid').getSelectedNodes()[0].sysorgid);}">确认</button>
+				<button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+			</div>
+		</div>
+	</div>
+</div>

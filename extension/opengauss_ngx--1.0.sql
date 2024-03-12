@@ -1,3 +1,6 @@
+drop schema if exists "conn" cascade;
+drop schema if exists "sysinfo" cascade;
+drop schema if exists "gm" cascade;
 
 do
 $do$
@@ -12,9 +15,6 @@ END
 $do$;
 
 --
-drop schema if exists "conn" cascade;
-drop schema if exists "sysinfo" cascade;
-drop schema if exists "gm" cascade;
 --
 
 SET statement_timeout = 0;
@@ -4200,14 +4200,7 @@ GRANT SELECT ON TABLE nginx TO conn;
 --
 --
 
-INSERT INTO sysinfo.appparams (appid, params, accesstoken, isused, tokentime, typeid) VALUES (100, 'appid=xxx&secret=xxx', 'xxx', 1, '2023-08-23 17:08:57.622318', 101);
-INSERT INTO sysinfo.operinfo (operatorid, operatorname, sex, phone, accounts, pass, memo, isused, mycode, upcode, headimgurl, nickname, birthday, tokentype, tokeninterval ) VALUES (100000, '系统管理员', NULL, NULL, 'admin', '123456',  NULL, 1, NULL, NULL, NULL, NULL, NULL, 1, 180);
-INSERT INTO sysinfo.operpermission (operatorid, permissiontype, ifpermission, permissionorder, params, sysactionid, permissionid) VALUES (100000, 1, NULL, NULL, NULL, 100, 100);
-INSERT INTO sysinfo.orgtype (isused, orgtypeid, orgtypename, description, systemid) VALUES (1, 100, '部门', NULL, 100);INSERT INTO sysinfo.sysoper (operatorid, systemid) VALUES (100000, 100);
-INSERT INTO sysinfo.sysoperorg (operatorid, sysorgid) VALUES (100000, 100);
-INSERT INTO sysinfo.sysorg (isused, idpath, idlevel, idcount, upid, systemid, sysorgid, sysorgname, description, orgtype) VALUES (1, NULL, NULL, NULL, NULL, 100, 100, NULL, NULL, NULL);
-INSERT INTO sysinfo.systeminfo (systemid, systemname, isused, algorithm, prikey, loginname) VALUES (100, '维护系统', 1, 1, 'Gao@12345', NULL);
-insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,150,'登录',null,null,'sysinfo/login',null);
+INSERT INTO sysinfo.appparams (appid, params, accesstoken, isused, tokentime, typeid) VALUES (100, 'appid=xxx&secret=xxx', 'xxx', 1, '2023-08-23 17:08:57.622318', 101);INSERT INTO sysinfo.operinfo (operatorid, operatorname, sex, phone, accounts, pass, memo, isused, mycode, upcode, headimgurl, nickname, birthday, tokentype, tokeninterval ) VALUES (100000, '系统管理员', NULL, NULL, 'admin', '123456',  NULL, 1, NULL, NULL, NULL, NULL, NULL, 1, 180);INSERT INTO sysinfo.operpermission (operatorid, permissiontype, ifpermission, permissionorder, params, sysactionid, permissionid) VALUES (100000, 1, NULL, NULL, NULL, 100, 100);INSERT INTO sysinfo.orgtype (isused, orgtypeid, orgtypename, description, systemid) VALUES (1, 100, '部门', NULL, 100);INSERT INTO sysinfo.sysoper (operatorid, systemid) VALUES (100000, 100);INSERT INTO sysinfo.sysoperorg (operatorid, sysorgid) VALUES (100000, 100);INSERT INTO sysinfo.sysorg (isused, idpath, idlevel, idcount, upid, systemid, sysorgid, sysorgname, description, orgtype) VALUES (1, NULL, NULL, NULL, NULL, 100, 100, NULL, NULL, NULL);INSERT INTO sysinfo.systeminfo (systemid, systemname, isused, algorithm, prikey, loginname) VALUES (100, '维护系统', 1, 1, 'Gao@12345', NULL);insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,150,'登录',null,null,'sysinfo/login',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,160,'微信登录',null,'101','sysinfo/loginaccount',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,161,'注册',null,null,'sysinfo/reg',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,171,'微信注册',null,'101','sysinfo/regmicrochat',null);
@@ -4297,7 +4290,7 @@ insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.110',4,0,9100,null,100,110,'合并系统权限',110,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.126',4,0,9104,null,100,126,'新增员工所属系统',126,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.127',4,0,9104,null,100,127,'修改员工所属系统',127,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100',1,10,0,null,100,100,'系统',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100',1,11,0,null,100,100,'系统',null,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001',2,2,100,null,100,9001,'系统管理',null,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002',2,5,100,null,100,9002,'本系统管理',null,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9103',2,6,100,null,100,9103,'系统日志',null,null);
