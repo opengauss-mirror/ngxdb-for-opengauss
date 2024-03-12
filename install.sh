@@ -44,6 +44,7 @@ else
     yum install python3.9 -y
   fi
 fi
+pip install -i https://mirrors.huaweicloud.com/repository/pypi/simple psycopg2-binary django
 
 rm /usr/bin/python
 ln -s /usr/bin/python3 /usr/bin/python
@@ -57,11 +58,13 @@ else
   ./configure --prefix=/opt/software/openGauss --enable-thread-safety --gcc-version=10.3.1 CC=g++ CFLAGS='-O2 -g3' --with-3rdpartydir=/root/ngxdb-for-opengauss/binarylibs --with-libxml --enable-cassert --with-readline --with-python
   make && make install
   useradd opengauss
-  echo "gao@12345!" | passwd -stdin opengauss
+  echo "gao@12345!" | passwd --stdin opengauss
   cp ../extension/*.* /opt/software/openGauss/share/postgresql/extension/
   chown opengauss /opt/software/openGauss -R
-  lines=$(grep -c "export GAUSSHOME=/opt/software/openGauss" /etc/profile)
-  if [ $lines = 0 ]; then
+  cd ..
+fi
+lines=$(grep -c "export GAUSSHOME=/opt/software/openGauss" /etc/profile)
+if [ $lines = 0 ]; then
     echo 'export GAUSSHOME=/opt/software/openGauss'>>/home/opengauss/.bashrc
     echo 'export GAUSSDATA=$GAUSSHOME/data'>>/home/opengauss/.bashrc
     echo 'export PGDATA=$GAUSSDATA'>>/home/opengauss/.bashrc
@@ -71,26 +74,26 @@ else
     echo 'export LD_LIBRARY_PATH=$GAUSSHOME/lib:$LD_LIBRARY_PATH'>>/etc/profile
     echo 'export PATH=$GAUSSHOME/bin:$PATH'>>/etc/profile
     source /etc/profile
-  fi
-  su - opengauss >> EOF
-  gs_initdb --nodename=gao
-  gs_ctl start 
-  gsql -d postgres
-  alter role "opengauss" password 'gao@12345!';
-  create extension plpython3u;
-  create extension opengauss_ngx;
-  \q
-  cd ..
 fi
+su - opengauss << EOF
+gs_initdb --nodename=gao
+gs_ctl start 
+gsql -d postgres
+alter role "opengauss" password 'gao@12345!';
+create extension plpython3u;
+create extension opengauss_ngx;
+\q
+exit
+EOF
 
 nginx="nginx-1.24.0"
-if [ -d $nginx ]; then
+if [ -d "/usr/local/nginx" ]; then
   echo "nginx exist"
 else
   wget http://nginx.org/download/${nginx}.tar.gz
   tar -zxvf nginx-1.24.0.tar.gz 
   cd $nginx
-  ./configure --add-module=../opengauss
+  ./configure --add-module=../opengauss --prefix=/usr/local/nginx
   make && make install
   cd ..
   sed '/error_page/i\        location /func {' /usr/local/nginx/conf/nginx.conf
@@ -106,6 +109,8 @@ else
   /usr/local/nginx/sbin/nginx
 fi
 
-python python_test\testfun.py
+python python_test/testfun.py
+python django/manage.py runserver --noreload --nothreading
+
 
 
