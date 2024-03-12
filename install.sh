@@ -13,6 +13,7 @@ fi
 arch=$(grep -oP 'Architecture:\s+\K.+' <<<`lscpu` | head -n1)
 if [ $arch = "" ]; then 
   arch=$(grep -oP '架构：\s+\K.+' <<<`lscpu` | head -n1)
+fi
 echo "$arch"
  
 if [ -d "binarylibs" ]; then
