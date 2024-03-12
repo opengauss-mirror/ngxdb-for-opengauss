@@ -49,7 +49,7 @@ def getfunc():
         func[funcname]=param
     conn.commit()
 
-conn=psycopg2.connect(host="192.168.1.96",database="postgres",user="conn",password="Gao@12345")
+conn=psycopg2.connect(host="127.0.0.1",database="postgres",user="conn",password="Gao@12345")
 cur=conn.cursor()
 func={}
 getfunc()
