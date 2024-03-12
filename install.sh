@@ -99,19 +99,20 @@ else
   ./configure --add-module=../opengauss --prefix=/usr/local/nginx
   make && make install
   cd ..
-  sed '/error_page/i\        location /func {' /usr/local/nginx/conf/nginx.conf
-  sed '/error_page/i\            opengaussconn "host=127.0.0.1 dbname=opengauss user=conn password=Gao12345 port=5432";' /usr/local/nginx/conf/nginx.conf     
-  sed '/error_page/i\            rewrite ^func/(.*)$ /$1 break;' /usr/local/nginx/conf/nginx.conf
-  sed '/error_page/i\        }' /usr/local/nginx/conf/nginx.conf
-  sed '/error_page/i\        ' /usr/local/nginx/conf/nginx.conf
-  sed '/error_page/i\        location /help {' /usr/local/nginx/conf/nginx.conf
-  sed '/error_page/i\            opengausshelp "host=127.0.0.1 dbname=opengauss user=conn password=Gao12345 port=5432";' /usr/local/nginx/conf/nginx.conf
-  sed '/error_page/i\            break;' /usr/local/nginx/conf/nginx.conf
-  sed '/error_page/i\        }' /user/local/nginx/conf/nginx.conf
-  sed '/error_page/i\        ' /usr/local/nginx/conf/nginx.conf  
-  /usr/local/nginx/sbin/nginx
+  sed -i '/error_page/i\        location /func {' /usr/local/nginx/conf/nginx.conf
+  sed -i '/error_page/i\            opengaussconn "host=127.0.0.1 dbname=opengauss user=conn password=Gao12345 port=5432";' /usr/local/nginx/conf/nginx.conf     
+  sed -i '/error_page/i\            rewrite ^func/(.*)$ /$1 break;' /usr/local/nginx/conf/nginx.conf
+  sed -i '/error_page/i\        }' /usr/local/nginx/conf/nginx.conf
+  sed -i '/error_page/i\        ' /usr/local/nginx/conf/nginx.conf
+  sed -i '/error_page/i\        location /help {' /usr/local/nginx/conf/nginx.conf
+  sed -i '/error_page/i\            opengausshelp "host=127.0.0.1 dbname=opengauss user=conn password=Gao12345 port=5432";' /usr/local/nginx/conf/nginx.conf
+  sed -i '/error_page/i\            break;' /usr/local/nginx/conf/nginx.conf
+  sed -i '/error_page/i\        }' /uer/local/nginx/conf/nginx.conf
+  sed -i '/error_page/i\        ' /usr/local/nginx/conf/nginx.conf  
 fi
 
+source /etc/profile
+/usr/local/nginx/sbin/nginx
 python python_test/testfun.py
 python django/manage.py runserver --noreload --nothreading
 

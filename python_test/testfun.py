@@ -13,7 +13,7 @@ import urllib3
 
 
 
-url='http://192.168.1.96:80/func/'
+url='http://127.0.0.1:80/func/'
 loginname='admin'  #账号1
 passward='123456' #密码1
 
