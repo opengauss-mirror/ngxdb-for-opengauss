@@ -194,9 +194,9 @@ firewall-cmd --zone=public --add-port=80/tcp --permanent
 firewall-cmd --zone=public --add-port=5432/tcp --permanent
 firewall-cmd --zone=public --add-port=8000/tcp --permanent
 
-GAUSSHOME=/opt/software/openGauss
-LD_LIBRARY_PATH=$GAUSSHOME/lib:$LD_LIBRARY_PATH
-PATH=$GAUSSHOME/bin:$PATH
+export GAUSSHOME=/opt/software/openGauss
+export LD_LIBRARY_PATH=$GAUSSHOME/lib:$LD_LIBRARY_PATH
+export PATH=$GAUSSHOME/bin:$PATH
 /usr/local/nginx/sbin/nginx
 ```
 ### 5、测试

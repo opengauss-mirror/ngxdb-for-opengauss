@@ -98,7 +98,7 @@ create extension opengauss_ngx;
 \q
 exit
 EOF
-
+*如果需要调试数据库，可将127.0.0.1/32修改为0.0.0.0/0
 #下载并编译安装nginx，修改nginx配置文件
 nginx="nginx-1.24.0"
 export GAUSSHOME=/opt/software/openGauss
@@ -116,16 +116,16 @@ else
   make && make install
   cd ..
   cp html/bootstrap /usr/local/nginx/html/ -r
-  sed -i '/location \/ {/i\        location /func {' /usr/local/nginx/conf/nginx.conf
-  sed -i '/location \/ {/i\            opengaussconn "host=127.0.0.1 dbname=opengauss user=conn password=gao@12345 port=5432";' /usr/local/nginx/conf/nginx.conf     
-  sed -i '/location \/ {/i\            rewrite ^/func/(.*)$ /$1 break;' /usr/local/nginx/conf/nginx.conf
-  sed -i '/location \/ {/i\        }' /usr/local/nginx/conf/nginx.conf
-  sed -i '/location \/ {/i\        ' /usr/local/nginx/conf/nginx.conf
-  sed -i '/location \/ {/i\        location /help {' /usr/local/nginx/conf/nginx.conf
-  sed -i '/location \/ {/i\            opengausshelp "host=127.0.0.1 dbname=opengauss user=conn password=gao@12345 port=5432";' /usr/local/nginx/conf/nginx.conf
-  sed -i '/location \/ {/i\            break;' /usr/local/nginx/conf/nginx.conf
-  sed -i '/location \/ {/i\        }' /usr/local/nginx/conf/nginx.conf
-  sed -i '/location \/ {/i\        ' /usr/local/nginx/conf/nginx.conf  
+  sed -i '/ \{6,\}location \/ {/i\        location /func {' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\            opengaussconn "host=127.0.0.1 dbname=postgres user=conn password=gao@12345 port=5432";' /usr/local/nginx/conf/nginx.conf     
+  sed -i '/ \{6,\}location \/ {/i\            rewrite ^/func/(.*)$ /$1 break;' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        }' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        ' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        location /help {' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\            opengausshelp "host=127.0.0.1 dbname=postgres user=conn password=gao@12345 port=5432";' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\            break;' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        }' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        ' /usr/local/nginx/conf/nginx.conf  
 fi
 
 #启动nginx
@@ -137,7 +137,7 @@ firewall-cmd --zone=public --add-port=8000/tcp --permanent
 #运行接口测试
 python python_test/testfun.py
 #运行django
-python django/manage.py runserver --noreload --nothreading
+python django/manage.py runserver 0.0.0.0:8000 --noreload --nothreading
 
 
 

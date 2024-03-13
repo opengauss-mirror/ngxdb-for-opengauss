@@ -232,7 +232,7 @@ static ngx_int_t ngx_http_opengaussproc_handler(ngx_http_request_t *req) {
     logparam[4]=aa;
     PGresult *res1=PQexecParams(conn,"insert into sysinfo.serverlog(clientip,funcname,content,logtime,serverip,params,res,operatorid,head) values($1,$2,$3,now(),inet_client_addr(),$4,$5,$6,$7);",7,NULL,(const char *const*)logparam,NULL,NULL,0);
     ExecStatusType et1=PQresultStatus(res1);
-    if (et1!=PGRES_TUPLES_OK) {
+    if (et1!=PGRES_COMMAND_OK) {
         ngx_log_error(NGX_LOG_EMERG, req->connection->log, 0, PQresultErrorField(res1,PG_DIAG_MESSAGE_PRIMARY),PQresultErrorField(res1,PG_DIAG_INTERNAL_QUERY));
     }
     freelogparam;
