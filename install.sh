@@ -89,7 +89,7 @@ su - opengauss << EOF
 gs_initdb --nodename=gao
 sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /opt/software/openGauss/data/postgresql.conf
 sed -i 's/#password_encryption_type = 2/password_encryption_type = 1/' /opt/software/openGauss/data/postgresql.conf
-sed -i '/# IPv6/i\host    all             all             0.0.0.0/0            md5' /opt/software/openGauss/data/pg_hba.conf
+sed -i '/# IPv6/i\host    all             all             127.0.0.1/32            md5' /opt/software/openGauss/data/pg_hba.conf
 gs_ctl start 
 gsql -d postgres
 alter role "opengauss" password 'gao@12345!';
@@ -114,20 +114,25 @@ else
   cd $nginx
   ./configure --add-module=../opengauss --prefix=/usr/local/nginx
   make && make install
-  cp bootstrap /usr/local/nginx/html/ -r
-  sed -i '/error_page/i\        location /func {' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\            opengaussconn "host=127.0.0.1 dbname=opengauss user=conn password=Gao12345 port=5432";' /usr/local/nginx/conf/nginx.conf     
-  sed -i '/error_page/i\            rewrite ^func/(.*)$ /$1 break;' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        }' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        ' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        location /help {' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\            opengausshelp "host=127.0.0.1 dbname=opengauss user=conn password=Gao12345 port=5432";' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\            break;' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        }' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        ' /usr/local/nginx/conf/nginx.conf  
+  cd ..
+  cp html/bootstrap /usr/local/nginx/html/ -r
+  sed -i '/location \/ {/i\        location /func {' /usr/local/nginx/conf/nginx.conf
+  sed -i '/location \/ {/i\            opengaussconn "host=127.0.0.1 dbname=opengauss user=conn password=gao@12345 port=5432";' /usr/local/nginx/conf/nginx.conf     
+  sed -i '/location \/ {/i\            rewrite ^/func/(.*)$ /$1 break;' /usr/local/nginx/conf/nginx.conf
+  sed -i '/location \/ {/i\        }' /usr/local/nginx/conf/nginx.conf
+  sed -i '/location \/ {/i\        ' /usr/local/nginx/conf/nginx.conf
+  sed -i '/location \/ {/i\        location /help {' /usr/local/nginx/conf/nginx.conf
+  sed -i '/location \/ {/i\            opengausshelp "host=127.0.0.1 dbname=opengauss user=conn password=gao@12345 port=5432";' /usr/local/nginx/conf/nginx.conf
+  sed -i '/location \/ {/i\            break;' /usr/local/nginx/conf/nginx.conf
+  sed -i '/location \/ {/i\        }' /usr/local/nginx/conf/nginx.conf
+  sed -i '/location \/ {/i\        ' /usr/local/nginx/conf/nginx.conf  
 fi
 
 #启动nginx
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+firewall-cmd --zone=public --add-port=5432/tcp --permanent
+firewall-cmd --zone=public --add-port=8000/tcp --permanent
+
 /usr/local/nginx/sbin/nginx
 #运行接口测试
 python python_test/testfun.py

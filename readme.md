@@ -132,7 +132,7 @@ su - opengauss << EOF
 gs_initdb --nodename=gao
 sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /opt/software/openGauss/data/postgresql.conf
 sed -i 's/#password_encryption_type=2/password_encryption_type=1/' /opt/software/openGauss/data/postgresql.conf
-sed -i '/# IPv6/i\host    all             all             0.0.0.0/0            md5' /opt/software/openGauss/data/pg_hba.conf
+sed -i '/# IPv6/i\host    all             all             127.0.0.1/32            md5' /opt/software/openGauss/data/pg_hba.conf
 gs_ctl start 
 gsql -d postgres
 alter role "opengauss" password 'gao@12345!';
@@ -190,6 +190,10 @@ fi
 ### 4、启动nginx
 ```
 #启动nginx
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+firewall-cmd --zone=public --add-port=5432/tcp --permanent
+firewall-cmd --zone=public --add-port=8000/tcp --permanent
+
 GAUSSHOME=/opt/software/openGauss
 LD_LIBRARY_PATH=$GAUSSHOME/lib:$LD_LIBRARY_PATH
 PATH=$GAUSSHOME/bin:$PATH
@@ -217,3 +221,7 @@ python python_test\testfun.py
 #运行django
 python django/manage.py runserver --noreload --nothreading
 ```
+ 在本机打开浏览器，在地址栏输入http://127.0.0.1:8000/help ，可以看到后端接口的帮助文档
+ 
+ 在本机打开浏览器，在地址栏输入http://127.0.0.1:8000/sysinfo/login?loginname=admin&pass=123456 ，可以看到浏览器返回json字符串，详见帮助文档
+

@@ -2,12 +2,12 @@ do
 $do$
 BEGIN
   IF NOT EXISTS ( SELECT * FROM pg_user WHERE usename = 'conn') THEN
-    CREATE user conn  PASSWORD 'Gao@12345';
-	DROP SCHEMA conn;
+    CREATE user conn  PASSWORD 'gao@12345';
+    DROP SCHEMA conn;
   END IF;
   IF NOT EXISTS ( SELECT * FROM pg_user WHERE usename = 'gm') THEN
-    CREATE user gm  PASSWORD 'Gao@12345';
-	DROP SCHEMA gm;
+    CREATE user gm  PASSWORD 'gao@12345';
+    DROP SCHEMA gm;
   END IF;
 END
 $do$;
