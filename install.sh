@@ -132,6 +132,7 @@ fi
 firewall-cmd --zone=public --add-port=80/tcp --permanent
 firewall-cmd --zone=public --add-port=5432/tcp --permanent
 firewall-cmd --zone=public --add-port=8000/tcp --permanent
+systemctl reload firewalld
 
 /usr/local/nginx/sbin/nginx
 #运行接口测试

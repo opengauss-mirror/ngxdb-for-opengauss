@@ -193,6 +193,7 @@ fi
 firewall-cmd --zone=public --add-port=80/tcp --permanent
 firewall-cmd --zone=public --add-port=5432/tcp --permanent
 firewall-cmd --zone=public --add-port=8000/tcp --permanent
+systemctl reload firewalld
 
 export GAUSSHOME=/opt/software/openGauss
 export LD_LIBRARY_PATH=$GAUSSHOME/lib:$LD_LIBRARY_PATH
