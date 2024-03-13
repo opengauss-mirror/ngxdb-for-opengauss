@@ -220,7 +220,7 @@ python python_test\testfun.py
 运行django服务
 ```
 #运行django
-python django/manage.py runserver --noreload --nothreading
+python django/manage.py runserver 0.0.0.0:8000 --noreload --nothreading
 ```
  在本机打开浏览器，在地址栏输入http://127.0.0.1:8000/help ，可以看到后端接口的帮助文档
  
