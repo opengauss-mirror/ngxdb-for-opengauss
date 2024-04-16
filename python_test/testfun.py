@@ -1,4 +1,5 @@
 import json
+from math import isnan
 import random
 import threading
 import time
@@ -7,7 +8,7 @@ from urllib.parse import urlencode
 import psycopg2
 import requests
 from base64 import b64encode 
-from datetime import datetime
+import datetime
 
 import urllib3
 
@@ -17,29 +18,65 @@ url='http://127.0.0.1:80/func/'
 loginname='admin'  #账号1
 passward='123456' #密码1
 
-def report(detail=False):
+def report(detail=False,filename=None):
     global icount,isucc,testreport
     if detail:
         for i in range(0,icount):
-            print(testreport[i][0],testreport[i][1],testreport[i][2],testreport[i][3])
+            print(testreport[i][0],testreport[i][1],testreport[i][2],testreport[i][3],testreport[i][4])
     print("开始时间:%s 结束时间:%s 耗时:%r秒" %(starttime,endtime,format(endtime-starttime)))
     print("总用例:%i 成功:%i 失败:%i" %(icount,isucc,icount-isucc))
+    if filename:
+        web=[]
+        web.append('<!DOCTYPE html>')
+        web.append('<html>')
+        web.append('<head>')
+        web.append('    <title>NGXDB for opengauss Test</title>')
+        web.append('    <meta charset="utf-8">')
+        web.append('    <meta name="viewport" content="width=device-width,initial-scale=1.0">')
+        # web.append('    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">')
+        web.append('</head>')
+        web.append('<body>')
+        web.append('    <div class="container">')
+        web.append('        <div class="row">')
+        web.append('            <div class="col-xs-12">')
+        web.append('                <h2 class="text-cpitalize">测试结果</h2>')
+        web.append('                <p class="attribute"><strong>开始时间：</strong>'+str(starttime)+'</p>')
+        web.append('                <p class="attribute"><strong>耗时：</strong>'+str(endtime-starttime)+'</p>')
+        web.append('                <p class="attribute"><strong>总计：</strong>'+str(icount)+'，成功：'+str(isucc)+'，失败：'+str(icount-isucc)+'</p>')
+        web.append('            </div>')
+        web.append('        </div>')
+        web.append('    </div>')
+        web.append('    <div class="row">')
+        web.append('        <div class="col-xs-12 col-sm-10 col-md-10">')
+        web.append('            <table class=“table table-hover table-responsive">')
+        web.append('            <thead>')
+        web.append('                <tr><th>名称</th><th>结果</th><th>耗时</th><th>参数</th><th>返回</th></tr>')
+        web.append('            </thead>')
+        web.append('            <tbody>')
+        succ=[]
+        fail=[]
+        for i in range(0,icount):
+            if testreport[i][4]:
+                succ.append('                <tr class="success"><td class-"col-xs-3">'+str(testreport[i][0])+'</td><td class="col-xs-1">成功</td><td class="col-xs-1">'+str(testreport[i][3])+'</td><td class="col-xs-3">'+str(testreport[i][1])+'</td><td class="col-xs-4">'+str(testreport[i][2])+'</td></tr>')
+            else:
+                fail.append('                <tr class="failure"><td class-"col-xs-3">'+str(testreport[i][0])+'</td><td class="col-xs-1">失败</td><td class="col-xs-1">'+str(testreport[i][3])+'</td><td class="col-xs-3">'+str(testreport[i][1])+'</td><td class="col-xs-4">'+str(testreport[i][2])+'</td></tr>')
+        web.extend(succ)
+        web.extend(fail)
+        web.append('                <tr><td colspan="3"总计：'+str(icount)+'，成功：'+str(isucc)+'，失败：'+str(icount-isucc)+'-- 耗时：'+str(endtime-starttime)+'</td></tr>')
+        web.append('            </tbody>')
+        web.append('            </table>')
+        web.append('        </div>')
+        web.append('    </div>')
+        web.append('</body>')
+        web.append('</html>')
+        file=open(filename,'w',encoding="utf-8")
+        file.write(chr(13).join(web))
+        file.close
 
 def getfun(funcname,param,report=True):
     global icount,testreport,isucc
-    data=''
-    # for item in param:
-    #     print(item)
-    #     data+=(item+'='+urlencode(value))
-    data=''.join([f'{key}={value}&' for key,value in param.items()])[:-1]
-    print(urlencode(param))
-    # funcname=funcname.replace('/','.')
-    # print(funcname)
-    # cur.execute("select "+funcname+"("+data+");")
-    # re=cur.fetchall()[0][0]
-    # print(re)
+    btime=datetime.datetime.now()
     re=requests.post(url+funcname,params=urlencode(param))
-    # testreport
     try:
         rejson=re.json()
         print(rejson)
@@ -48,18 +85,18 @@ def getfun(funcname,param,report=True):
     except: 
         print(re.text)
         if report:
-            testreport.append([funcname,param,None,False])
+            testreport.append([funcname,param,None,datetime.datetime.now()-btime,False])
         return None
     if (rejson["errorcode"]!=0):
         print(rejson["message"])
         if report:
             icount+=1
-            testreport.append([funcname,param,re.text,False])
+            testreport.append([funcname,param,re.text,datetime.datetime.now()-btime,False])
     else:
         if report:
             isucc=isucc+1
             icount+=1
-            testreport.append([funcname,param,re.text,True])
+            testreport.append([funcname,param,re.text,datetime.datetime.now()-btime,True])
     return rejson
 
 def login(loginname,passw,system=None,report=True):
@@ -71,38 +108,42 @@ def test_sysinfo_login():
     param={"loginname":"asasf","pass":"sdfsdf"}    
     for i in range(6):
         icount+=1
+        btime=datetime.datetime.now()
         rj=getfun("sysinfo/login",param,False)
         if rj==None:
-            testreport.append(["sysinfo/login",param,None,True])
+            testreport.append(["sysinfo/login",param,None,datetime.datetime.now()-btime,True])
         else: 
             if rj["errorcode"]==100001:
                 isucc=isucc+1
-                testreport.append(["sysinfo/login",param,rj,True])
+                testreport.append(["sysinfo/login",param,rj,datetime.datetime.now()-btime,True])
             else:
-                testreport.append(["sysinfo/login",param,rj,False])
+                testreport.append(["sysinfo/login",param,rj,datetime.datetime.now()-btime,False])
         time.sleep(60)
+    btime=datetime.datetime.now()
     rj=getfun("sysinfo/login",param,False)
     icount+=1
     if rj==None:
-        testreport[icount]={"sysinfo/login",param,None,True}
+        testreport[icount]={"sysinfo/login",param,None,datetime.datetime.now()-btime,True}
     else: 
         if rj["errorcode"]==100002:
             isucc=isucc+1
-            testreport.append(["sysinfo/login",param,rj,True])
+            testreport.append(["sysinfo/login",param,rj,datetime.datetime.now()-btime,True])
         else:
-            testreport.append(["sysinfo/login",param,rj,False])
+            testreport.append(["sysinfo/login",param,rj,datetime.datetime.now()-btime,False])
     time.sleep(60*4)
     for i in range(5):
+        btime=datetime.datetime.now()
         icount+=1
         rj=getfun("sysinfo/login",param,False)
         if rj==None:
-            testreport[icount]={"sysinfo/login",param,None,True}
+            testreport[icount]={"sysinfo/login",param,None,datetime.datetime.now()-btime,True}
         else: 
             if rj["errorcode"]==100001:
                 isucc=isucc+1
-                testreport.append(["sysinfo/login",param,rj,True])
+                testreport.append(["sysinfo/login",param,rj,datetime.datetime.now()-btime,True])
             else:
-                testreport.append(["sysinfo/login",param,rj,False])    
+                testreport.append(["sysinfo/login",param,rj,datetime.datetime.now()-btime,False])    
+    btime=datetime.datetime.now()
     rj=getfun("sysinfo/login",param,False)
     icount+=1
     if rj==None:
@@ -110,29 +151,30 @@ def test_sysinfo_login():
     else: 
         if rj["errorcode"]==100003:
             isucc=isucc+1
-            testreport.append(["sysinfo/login",param,rj,True])
+            testreport.append(["sysinfo/login",param,rj,datetime.datetime.now()-btime,True])
         else:
-            testreport.append(["sysinfo/login",param,rj,False])
+            testreport.append(["sysinfo/login",param,rj,datetime.datetime.now()-btime,False])
 
 def test_gm_check_login():
     global icount,isucc
+    btime=datetime.datetime.now()
     cur.callproc('gm.check_login',['asdaddd'+token,100])
     re=cur.fetchall()[0][0]
     icount+=1
     if re['errorcode']==100005:
         isucc+=1
-        testreport.append(['gm.check_login',['asdaddd'+token,100],re,True])
+        testreport.append(['gm.check_login',['asdaddd'+token,100],re,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['gm.check_login',['asdaddd'+token,100],re,False])
-
+        testreport.append(['gm.check_login',['asdaddd'+token,100],re,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     cur.callproc('gm.check_login',[token,100])
     re=cur.fetchall()[0][0]
     icount+=1
     if re['errorcode']==0:
         isucc+=1
-        testreport.append(['gm.check_login',[token,100],re,True])
+        testreport.append(['gm.check_login',[token,100],re,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['gm.check_login',[token,100],re,False])
+        testreport.append(['gm.check_login',[token,100],re,datetime.datetime.now()-btime,False])
 
 def test_sysinfo_systeminfo():
     global icount,isucc,token,testreport
@@ -151,46 +193,52 @@ def test_sysinfo_systeminfo():
     cur.execute("delete from sysinfo.systeminfo where systemid="+str(systemid))
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"systemid":systemid,"systemname":systemname,"algorithm":algorithm,"loginname":loginname,"prikey":prikey}
     rj=getfun("sysinfo/systeminfo_add",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.systeminfo_add',param,rj,True])
+        testreport.append(['sysinfo.systeminfo_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.systeminfo_add',param,rj,False])
+        testreport.append(['sysinfo.systeminfo_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"systemid":systemid,"systemname":systemname,"algorithm":algorithm,"loginname":loginname,"prikey":prikey}
     rj=getfun("sysinfo/systeminfo_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.systeminfo_edit',param,rj,True])
+        testreport.append(['sysinfo.systeminfo_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.systeminfo_edit',param,rj,False])
+        testreport.append(['sysinfo.systeminfo_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"systemid":systemid,"systemname":systemname,"algorithm":algorithm,"loginname":loginname,"prikey":prikey}
     rj=getfun("sysinfo/systeminfo_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.systeminfo_merge',param,rj,True])
+        testreport.append(['sysinfo.systeminfo_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.systeminfo_merge',param,rj,False])
+        testreport.append(['sysinfo.systeminfo_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"systemid":systemid}
     rj=getfun("sysinfo/systeminfo_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.systeminfo_query',param,rj,True])
+        testreport.append(['sysinfo.systeminfo_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.systeminfo_query',param,rj,False])
+        testreport.append(['sysinfo.systeminfo_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"systemid":systemid,"rows":1,"page":1}
     rj=getfun("sysinfo/systeminfo_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.systeminfo_query',param,rj,True])
+        testreport.append(['sysinfo.systeminfo_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.systeminfo_query',param,rj,False])
+        testreport.append(['sysinfo.systeminfo_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"systemid":systemid}
     rj=getfun("sysinfo/systeminfo_del",param,False)
@@ -199,9 +247,10 @@ def test_sysinfo_systeminfo():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.systeminfo_del',param,rj,True])
+        testreport.append(['sysinfo.systeminfo_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.systeminfo_del',param,rj,False])
+        testreport.append(['sysinfo.systeminfo_del',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"systemid":systemid}
     rj=getfun("sysinfo/systeminfo_undel",param,False)
@@ -210,9 +259,9 @@ def test_sysinfo_systeminfo():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.systeminfo_undel',param,rj,True])
+        testreport.append(['sysinfo.systeminfo_undel',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.systeminfo_undel',param,rj,False])
+        testreport.append(['sysinfo.systeminfo_undel',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.systeminfo where systemid="+str(systemid))
     conn.commit()
     time.sleep(1)
@@ -239,47 +288,53 @@ def test_sysinfo_sysaction():
 
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"upid":upid,"params":params,"sysactionid":sysactionid,"sysactionname":sysactionname,"actionid":actionid,"isdefault":isdefault,"systemid":systemid}
     rj=getfun("sysinfo/sysaction_add",param,False)
     # print(rj)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.sysaction_add',param,rj,True])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_add',param,rj,False])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"upid":upid,"params":params,"sysactionid":sysactionid,"sysactionname":sysactionname,"actionid":actionid,"isdefault":isdefault,"systemid":systemid}
     rj=getfun("sysinfo/sysaction_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.sysaction_edit',param,rj,True])
+        testreport.append(['sysinfo.sysaction_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_edit',param,rj,False])
+        testreport.append(['sysinfo.sysaction_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"upid":upid,"params":params,"sysactionid":sysactionid,"sysactionname":sysactionname,"actionid":actionid,"isdefault":isdefault,"systemid":systemid}
     rj=getfun("sysinfo/sysaction_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.sysaction_merge',param,rj,True])
+        testreport.append(['sysinfo.sysaction_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_merge',param,rj,False])
+        testreport.append(['sysinfo.sysaction_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"sysactionid":sysactionid}
     rj=getfun("sysinfo/sysaction_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.sysaction_query',param,rj,True])
+        testreport.append(['sysinfo.sysaction_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_query',param,rj,False])
+        testreport.append(['sysinfo.sysaction_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"sysactionid":sysactionid,"rows":1,"page":1}
     rj=getfun("sysinfo/sysaction_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.sysaction_query',param,rj,True])
+        testreport.append(['sysinfo.sysaction_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_query',param,rj,False])
+        testreport.append(['sysinfo.sysaction_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"sysactionid":sysactionid}
     rj=getfun("sysinfo/sysaction_del",param,False)
@@ -288,9 +343,10 @@ def test_sysinfo_sysaction():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.sysaction_del',param,rj,True])
+        testreport.append(['sysinfo.sysaction_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_del',param,rj,False])
+        testreport.append(['sysinfo.sysaction_del',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"sysactionid":sysactionid}
     rj=getfun("sysinfo/sysaction_undel",param,False)
@@ -299,9 +355,9 @@ def test_sysinfo_sysaction():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.sysaction_undel',param,rj,True])
+        testreport.append(['sysinfo.sysaction_undel',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_undel',param,rj,False])
+        testreport.append(['sysinfo.sysaction_undel',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.sysaction where sysactionid="+str(sysactionid))
     cur.execute("delete from sysinfo.actions where actionid=99")
     conn.commit()
@@ -322,46 +378,52 @@ def test_sysinfo_orgtype():
     cur.execute("delete from sysinfo.orgtype where orgtypeid="+str(orgtypeid))
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"orgtypeid":orgtypeid,"orgtypename":orgtypename,"description":description}
     rj=getfun("sysinfo/orgtype_add",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.orgtype_add',param,rj,True])
+        testreport.append(['sysinfo.orgtype_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.orgtype_add',param,rj,False])
+        testreport.append(['sysinfo.orgtype_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"orgtypeid":orgtypeid,"orgtypename":orgtypename,"description":description}
     rj=getfun("sysinfo/orgtype_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.orgtype_edit',param,rj,True])
+        testreport.append(['sysinfo.orgtype_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.orgtype_edit',param,rj,False])
+        testreport.append(['sysinfo.orgtype_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"orgtypeid":orgtypeid,"orgtypename":orgtypename,"description":description}
     rj=getfun("sysinfo/orgtype_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.orgtype_merge',param,rj,True])
+        testreport.append(['sysinfo.orgtype_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.orgtype_merge',param,rj,False])
+        testreport.append(['sysinfo.orgtype_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"orgtypeid":orgtypeid}
     rj=getfun("sysinfo/orgtype_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.orgtype_query',param,rj,True])
+        testreport.append(['sysinfo.orgtype_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.orgtype_query',param,rj,False])
+        testreport.append(['sysinfo.orgtype_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"orgtypeid":orgtypeid,"rows":1,"page":1}
     rj=getfun("sysinfo/orgtype_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.orgtype_query',param,rj,True])
+        testreport.append(['sysinfo.orgtype_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.orgtype_query',param,rj,False])
+        testreport.append(['sysinfo.orgtype_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"orgtypeid":orgtypeid}
     rj=getfun("sysinfo/orgtype_del",param,False)
@@ -370,9 +432,10 @@ def test_sysinfo_orgtype():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.orgtype_del',param,rj,True])
+        testreport.append(['sysinfo.orgtype_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.orgtype_del',param,rj,False])
+        testreport.append(['sysinfo.orgtype_del',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"orgtypeid":orgtypeid}
     rj=getfun("sysinfo/orgtype_undel",param,False)
@@ -381,9 +444,9 @@ def test_sysinfo_orgtype():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.orgtype_undel',param,rj,True])
+        testreport.append(['sysinfo.orgtype_undel',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.orgtype_undel',param,rj,False])
+        testreport.append(['sysinfo.orgtype_undel',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.orgtype where orgtypeid="+str(orgtypeid))
     conn.commit()
     time.sleep(1)
@@ -405,46 +468,52 @@ def test_sysinfo_sysorg():
     cur.execute("delete from sysinfo.sysorg where sysorgid="+str(sysorgid))
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"upid":upid,"sysorgid":sysorgid,"sysorgname":sysorgname,"description":description,"orgtype":orgtype}
     rj=getfun("sysinfo/sysorg_add",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.sysorg_add',param,rj,True])
+        testreport.append(['sysinfo.sysorg_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysorg_add',param,rj,False])
+        testreport.append(['sysinfo.sysorg_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"upid":upid,"sysorgid":sysorgid,"sysorgname":sysorgname,"description":description,"orgtype":orgtype}
     rj=getfun("sysinfo/sysorg_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.sysorg_edit',param,rj,True])
+        testreport.append(['sysinfo.sysorg_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysorg_edit',param,rj,False])
+        testreport.append(['sysinfo.sysorg_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"upid":upid,"sysorgid":sysorgid,"sysorgname":sysorgname,"description":description,"orgtype":orgtype}
     rj=getfun("sysinfo/sysorg_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.sysorg_merge',param,rj,True])
+        testreport.append(['sysinfo.sysorg_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysorg_merge',param,rj,False])
+        testreport.append(['sysinfo.sysorg_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"sysorgid":99}
     rj=getfun("sysinfo/sysorg_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.sysorg_query',param,rj,True])
+        testreport.append(['sysinfo.sysorg_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysorg_query',param,rj,False])
+        testreport.append(['sysinfo.sysorg_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"sysorgid":sysorgid,"rows":1,"page":1}
     rj=getfun("sysinfo/sysorg_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.sysorg_query',param,rj,True])
+        testreport.append(['sysinfo.sysorg_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysorg_query',param,rj,False])
+        testreport.append(['sysinfo.sysorg_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"sysorgid":sysorgid}
     rj=getfun("sysinfo/sysorg_del",param,False)
@@ -453,9 +522,10 @@ def test_sysinfo_sysorg():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.sysorg_del',param,rj,True])
+        testreport.append(['sysinfo.sysorg_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysorg_del',param,rj,False])
+        testreport.append(['sysinfo.sysorg_del',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"sysorgid":sysorgid}
     rj=getfun("sysinfo/sysorg_undel",param,False)
@@ -464,9 +534,9 @@ def test_sysinfo_sysorg():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.sysorg_undel',param,rj,True])
+        testreport.append(['sysinfo.sysorg_undel',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysorg_undel',param,rj,False])
+        testreport.append(['sysinfo.sysorg_undel',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.sysorg where sysorgid="+str(sysorgid))
     conn.commit()
     time.sleep(1)
@@ -482,53 +552,60 @@ def test_sysinfo_operinfo():
             return False
     operatorid=99
     operatorname="hJZ7wMX7XZbhlVReB57aRfIAstv1HYellspF4WgelEDMXp8jRGKvpq8thSR7qd4qPCPpFZtWEGwit3eshPJxU0B5D9alEiwYTlqd0mtgWRrKjT33Aju5UV9LOAf3qvyiLcc2jGwfvjTbKj64bWYGEMtxqux4dIjcuSna9iHMrrC5dcNq3UVVH686VyUuup76cKReJVxDMUqMiH425GonurGiuWGCW8rNXbI4S22eSGQTCvSF6p8yFVSgo6aOjpT"
-    sysoperjson='[{"systemid":100}]'
+    operpermissionjson='[{"permissiontype":1,"ifpermission":99,"permissionorder":99,"sysactionid":100,"permissionid":99}]'
     tokentype=1
     tokeninterval=180
     cur.execute("delete from sysinfo.operinfo where operatorid="+str(operatorid))
     cur.execute("delete from sysinfo.sysoper where operatorid="+str(operatorid))
+    cur.execute("delete from sysinfo.operpermission where operatorid="+str(operatorid))
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
-    param={"token":token,"operatorid":operatorid,"operatorname":operatorname,"tokentype":tokentype,"tokeninterval":tokeninterval,"sysoperjson":sysoperjson}
+    param={"token":token,"operatorid":operatorid,"operatorname":operatorname,"tokentype":tokentype,"tokeninterval":tokeninterval,"operpermissionjson":operpermissionjson}
     rj=getfun("sysinfo/operinfo_add",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.operinfo_add',param,rj,True])
+        testreport.append(['sysinfo.operinfo_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfo_add',param,rj,False])
+        testreport.append(['sysinfo.operinfo_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
-    param={"token":token,"operatorid":operatorid,"operatorname":operatorname,"tokentype":tokentype,"tokeninterval":tokeninterval,"sysoperjson":sysoperjson}
+    param={"token":token,"operatorid":operatorid,"operatorname":operatorname,"tokentype":tokentype,"tokeninterval":tokeninterval,"operpermissionjson":operpermissionjson}
     rj=getfun("sysinfo/operinfo_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.operinfo_edit',param,rj,True])
+        testreport.append(['sysinfo.operinfo_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfo_edit',param,rj,False])
+        testreport.append(['sysinfo.operinfo_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
-    param={"token":token,"operatorid":operatorid,"operatorname":operatorname,"tokentype":tokentype,"tokeninterval":tokeninterval,"sysoperjson":sysoperjson}
+    param={"token":token,"operatorid":operatorid,"operatorname":operatorname,"tokentype":tokentype,"tokeninterval":tokeninterval,"operpermissionjson":operpermissionjson}
     rj=getfun("sysinfo/operinfo_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.operinfo_merge',param,rj,True])
+        testreport.append(['sysinfo.operinfo_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfo_merge',param,rj,False])
+        testreport.append(['sysinfo.operinfo_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"operatorid":99}
     rj=getfun("sysinfo/operinfo_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.operinfo_query',param,rj,True])
+        testreport.append(['sysinfo.operinfo_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfo_query',param,rj,False])
+        testreport.append(['sysinfo.operinfo_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"operatorid":operatorid,"rows":1,"page":1}
     rj=getfun("sysinfo/operinfo_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.operinfo_query',param,rj,True])
+        testreport.append(['sysinfo.operinfo_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfo_query',param,rj,False])
+        testreport.append(['sysinfo.operinfo_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"operatorid":operatorid}
     rj=getfun("sysinfo/operinfo_del",param,False)
@@ -537,9 +614,10 @@ def test_sysinfo_operinfo():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.operinfo_del',param,rj,True])
+        testreport.append(['sysinfo.operinfo_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfo_del',param,rj,False])
+        testreport.append(['sysinfo.operinfo_del',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"operatorid":operatorid}
     rj=getfun("sysinfo/operinfo_undel",param,False)
@@ -548,11 +626,12 @@ def test_sysinfo_operinfo():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.operinfo_undel',param,rj,True])
+        testreport.append(['sysinfo.operinfo_undel',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfo_undel',param,rj,False])
+        testreport.append(['sysinfo.operinfo_undel',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.operinfo where operatorid="+str(operatorid))
     cur.execute("delete from sysinfo.sysoper where operatorid=99")
+    cur.execute("delete from sysinfo.operpermission where operatorid="+str(operatorid))
     conn.commit()
     time.sleep(1)
 
@@ -574,46 +653,52 @@ def test_sysinfo_operinfoorg():
     cur.execute("delete from sysinfo.sysoperorg where operatorid="+str(operatorid))
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"operatorid":operatorid,"operatorname":operatorname,"tokentype":tokentype,"tokeninterval":tokeninterval,"sysoperorgjson":sysoperorgjson}
     rj=getfun("sysinfo/operinfoorg_add",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.operinfoorg_add',param,rj,True])
+        testreport.append(['sysinfo.operinfoorg_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfoorg_add',param,rj,False])
+        testreport.append(['sysinfo.operinfoorg_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"operatorid":operatorid,"operatorname":operatorname,"tokentype":tokentype,"tokeninterval":tokeninterval,"sysoperorgjson":sysoperorgjson}
     rj=getfun("sysinfo/operinfoorg_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.operinfoorg_edit',param,rj,True])
+        testreport.append(['sysinfo.operinfoorg_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfoorg_edit',param,rj,False])
+        testreport.append(['sysinfo.operinfoorg_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"operatorid":operatorid,"operatorname":operatorname,"tokentype":tokentype,"tokeninterval":tokeninterval,"sysoperorgjson":sysoperorgjson}
     rj=getfun("sysinfo/operinfoorg_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.operinfoorg_merge',param,rj,True])
+        testreport.append(['sysinfo.operinfoorg_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfoorg_merge',param,rj,False])
+        testreport.append(['sysinfo.operinfoorg_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"operatorid":99}
     rj=getfun("sysinfo/operinfoorg_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.operinfoorg_query',param,rj,True])
+        testreport.append(['sysinfo.operinfoorg_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfoorg_query',param,rj,False])
+        testreport.append(['sysinfo.operinfoorg_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"operatorid":operatorid,"rows":1,"page":1}
     rj=getfun("sysinfo/operinfoorg_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.operinfoorg_query',param,rj,True])
+        testreport.append(['sysinfo.operinfoorg_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfoorg_query',param,rj,False])
+        testreport.append(['sysinfo.operinfoorg_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"operatorid":operatorid}
     rj=getfun("sysinfo/operinfoorg_del",param,False)
@@ -622,9 +707,10 @@ def test_sysinfo_operinfoorg():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.operinfoorg_del',param,rj,True])
+        testreport.append(['sysinfo.operinfoorg_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfoorg_del',param,rj,False])
+        testreport.append(['sysinfo.operinfoorg_del',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"operatorid":operatorid}
     rj=getfun("sysinfo/operinfoorg_undel",param,False)
@@ -633,9 +719,9 @@ def test_sysinfo_operinfoorg():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.operinfoorg_undel',param,rj,True])
+        testreport.append(['sysinfo.operinfoorg_undel',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfoorg_undel',param,rj,False])
+        testreport.append(['sysinfo.operinfoorg_undel',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.operinfo where operatorid="+str(operatorid))
     cur.execute("delete from sysinfo.sysoperorg where operatorid="+str(operatorid))
     conn.commit()
@@ -658,46 +744,52 @@ def test_sysinfo_roleinfo():
     cur.execute("delete from sysinfo.rolepermission where permissionid=99")
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"roleinfoid":roleinfoid,"roleinfoname":roleinfoname,"description":description,"rolepermissionjson":rolepermissionjson}
     rj=getfun("sysinfo/roleinfo_add",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.roleinfo_add',param,rj,True])
+        testreport.append(['sysinfo.roleinfo_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.roleinfo_add',param,rj,False])
+        testreport.append(['sysinfo.roleinfo_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"roleinfoid":roleinfoid,"roleinfoname":roleinfoname,"description":description,"rolepermissionjson":rolepermissionjson}
     rj=getfun("sysinfo/roleinfo_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.roleinfo_edit',param,rj,True])
+        testreport.append(['sysinfo.roleinfo_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.roleinfo_edit',param,rj,False])
+        testreport.append(['sysinfo.roleinfo_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"roleinfoid":roleinfoid,"roleinfoname":roleinfoname,"description":description,"rolepermissionjson":rolepermissionjson}
     rj=getfun("sysinfo/roleinfo_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.roleinfo_merge',param,rj,True])
+        testreport.append(['sysinfo.roleinfo_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.roleinfo_merge',param,rj,False])
+        testreport.append(['sysinfo.roleinfo_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"roleinfoid":99}
     rj=getfun("sysinfo/roleinfo_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.roleinfo_query',param,rj,True])
+        testreport.append(['sysinfo.roleinfo_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.roleinfo_query',param,rj,False])
+        testreport.append(['sysinfo.roleinfo_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"roleinfoid":roleinfoid,"rows":1,"page":1}
     rj=getfun("sysinfo/roleinfo_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.roleinfo_query',param,rj,True])
+        testreport.append(['sysinfo.roleinfo_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.roleinfo_query',param,rj,False])
+        testreport.append(['sysinfo.roleinfo_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"roleinfoid":roleinfoid}
     rj=getfun("sysinfo/roleinfo_del",param,False)
@@ -706,9 +798,10 @@ def test_sysinfo_roleinfo():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.roleinfo_del',param,rj,True])
+        testreport.append(['sysinfo.roleinfo_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.roleinfo_del',param,rj,False])
+        testreport.append(['sysinfo.roleinfo_del',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"roleinfoid":roleinfoid}
     rj=getfun("sysinfo/roleinfo_undel",param,False)
@@ -717,9 +810,9 @@ def test_sysinfo_roleinfo():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.roleinfo_undel',param,rj,True])
+        testreport.append(['sysinfo.roleinfo_undel',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.roleinfo_undel',param,rj,False])
+        testreport.append(['sysinfo.roleinfo_undel',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.roleinfo where roleinfoid="+str(roleinfoid))
     cur.execute("delete from sysinfo.rolepermission where permissionid=99")
     conn.commit()
@@ -735,7 +828,7 @@ def test_sysinfo_operinfopermission():
         else:
             return False
     operatorid=99
-    operpermissionjson='[{"permissiontype":99,"ifpermission":99,"permissionorder":99,"sysactionid":99,"permissionid":99,"systemid":100}]'
+    operpermissionjson='[{"permissiontype":1,"ifpermission":99,"permissionorder":99,"sysactionid":100,"permissionid":99,"systemid":100}]'
     cur.execute("delete from sysinfo.operinfo where operatorid="+str(operatorid))
     cur.execute("delete from sysinfo.operpermission where operatorid=99")
     cur.execute('delete from sysinfo.sysoper where operatorid=99')
@@ -744,47 +837,53 @@ def test_sysinfo_operinfopermission():
     cur.execute("insert into sysinfo.sysoper(operatorid,systemid) values(99,100)")
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     # token='8EcynEywtr/G6ig2ovkYwG3nF0fYfGQIenrK/x8EEkhlJH43yYNdruOofwiNR4QzEFCk3ecXvZI7yeC9auMvgJ3etFZ2+km08R18H7081G/hOesq6s6c8nsvH3PKqAUGXHsmcQxyw4pRFnLcI9832/Jnmp+EEyAU8PVFPD+xLJhmTibwLj4u5A34kgHi4fU/RPiZ5DySgDR1jvTPBuYSMFUNfGwkeqQSTMJ+17qwsZoslk82hSpCQ2xspFeaPGCbadnQLLsjk4BNsBPa/jjXKqUAS3TTp8SBle84l8XJ6qQitSmqrKbmlwwD1f9VsicUykWnvkgp7ikLNjsVQv0euVBrvso34lLSAUfRn8JsjW3dQbUYsHQrYM5stKoUbtyxOacp5w=='
     param={"token":token,"operatorid":operatorid,"operpermissionjson":operpermissionjson}
     rj=getfun("sysinfo/operinfopermission_add",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.operinfopermission_add',param,rj,True])
+        testreport.append(['sysinfo.operinfopermission_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfopermission_add',param,rj,False])
+        testreport.append(['sysinfo.operinfopermission_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"operatorid":operatorid,"operpermissionjson":operpermissionjson}
     rj=getfun("sysinfo/operinfopermission_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.operinfopermission_edit',param,rj,True])
+        testreport.append(['sysinfo.operinfopermission_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfopermission_edit',param,rj,False])
+        testreport.append(['sysinfo.operinfopermission_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"operatorid":operatorid,"operpermissionjson":operpermissionjson}
     rj=getfun("sysinfo/operinfopermission_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.operinfopermission_merge',param,rj,True])
+        testreport.append(['sysinfo.operinfopermission_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfopermission_merge',param,rj,False])
+        testreport.append(['sysinfo.operinfopermission_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"operatorid":99}
     # rj=getfun("sysinfo/operinfopermission_query",param,False)
     # if rj['errorcode']==0 and rj['info']['total']==1:
     #     isucc+=1
-    #     testreport.append(['sysinfo.operinfopermission_query',param,rj,True])
+    #     testreport.append(['sysinfo.operinfopermission_query',param,rj,datetime.datetime.now()-btime,True])
     # else:
-    #     testreport.append(['sysinfo.operinfopermission_query',param,rj,False])
+    #     testreport.append(['sysinfo.operinfopermission_query',param,rj,datetime.datetime.now()-btime,False])
+    # btime=datetime.datetime.now()
     # icount+=1
     # param={"token":token,"operatorid":operatorid,"rows":1,"page":1}
     # rj=getfun("sysinfo/operinfopermission_query",param,False)
     # if rj['errorcode']==0 and rj['info']['total']==1:
     #     isucc+=1
-    #     testreport.append(['sysinfo.operinfopermission_query',param,rj,True])
+    #     testreport.append(['sysinfo.operinfopermission_query',param,rj,datetime.datetime.now()-btime,True])
     # else:
-    #     testreport.append(['sysinfo.operinfopermission_query',param,rj,False])
+    #     testreport.append(['sysinfo.operinfopermission_query',param,rj,datetime.datetime.now()-btime,False])
+    # btime=datetime.datetime.now()
     # icount+=1
     param={"token":token,"operatorid":operatorid}
     rj=getfun("sysinfo/operinfopermission_del",param,False)
@@ -794,14 +893,15 @@ def test_sysinfo_operinfopermission():
     print(lines[0][0])
     if rj['errorcode']==0 and lines[0][0]==0:
         isucc+=1
-        testreport.append(['sysinfo.operinfopermission_del',param,rj,True])
+        testreport.append(['sysinfo.operinfopermission_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfopermission_del',param,rj,False])
+        testreport.append(['sysinfo.operinfopermission_del',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.operinfo where operatorid="+str(operatorid))
     cur.execute("delete from sysinfo.operpermission where operatorid=99")
     cur.execute('delete from sysinfo.sysoper where operatorid=99')
     conn.commit()
     time.sleep(1)
+
 
 def test_sysinfo_province():
     global icount,isucc,token,testreport
@@ -813,50 +913,55 @@ def test_sysinfo_province():
         else:
             return False
     pid=99
-    province="tHHGi7NBU0gjnCd0gmGzkZ8VQnEhqL193wLpOCndIw0XYBpmFwM8ZDuYIkz1DkKJpkQOxkvQJoGDM0rpThCoKI9fTfkH4BaoUhoDI0EkVgETcKPpiqnAnj6PqsmUAy4O7ZO4oSwqhrIWm9abnEQ50Z1R4MQLIl7h8YNBknlyoXesArtwbKSIk3ZEWkPcgRlCljz3M47bQh27AHFYtEF32Qe3q0AuS33JmDiukgqbj9tOZ1nhHtI06UCG4K1ZktO"
+    province="1fJ03ZOMdOB50TK2hvm6trlefQ2ZWt5mvxK6CTEwRgyJdHarxEfe0qJC4kMGAGvD2aCWNcww87lVz1GoDTTGkAhnrmHN1vRzZNiajFcSI63FiTZGpMTP56gFFDQLQ8geqg3x2eMSjh6GtvkTU3fiXMIId2pOfdBlM2nmux6mFqek5q8V7VEFCOZ6G5ZxOJdJrFxBGHZHmlo6mZkvBJI3k5JeBhCICMIP0I0yNnFoFgU26ahuXDl1bqHg5fcBOuq"
     cur.execute("delete from sysinfo.province where pid="+str(pid))
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"pid":pid,"province":province}
     rj=getfun("sysinfo/province_add",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.province_add',param,rj,True])
+        testreport.append(['sysinfo.province_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.province_add',param,rj,False])
+        testreport.append(['sysinfo.province_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"pid":pid,"province":province}
     rj=getfun("sysinfo/province_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.province_edit',param,rj,True])
+        testreport.append(['sysinfo.province_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.province_edit',param,rj,False])
+        testreport.append(['sysinfo.province_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"pid":pid,"province":province}
     rj=getfun("sysinfo/province_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.province_merge',param,rj,True])
+        testreport.append(['sysinfo.province_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.province_merge',param,rj,False])
+        testreport.append(['sysinfo.province_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"pid":99}
     rj=getfun("sysinfo/province_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.province_query',param,rj,True])
+        testreport.append(['sysinfo.province_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.province_query',param,rj,False])
+        testreport.append(['sysinfo.province_query',param,rj,datetime.datetime.now()-btime,False])
     icount+=1
     param={"token":token,"pid":pid,"rows":1,"page":1}
     rj=getfun("sysinfo/province_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.province_query',param,rj,True])
+        testreport.append(['sysinfo.province_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.province_query',param,rj,False])
+        testreport.append(['sysinfo.province_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"pid":pid}
     rj=getfun("sysinfo/province_del",param,False)
@@ -865,9 +970,9 @@ def test_sysinfo_province():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.province_del',param,rj,True])
+        testreport.append(['sysinfo.province_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.province_del',param,rj,False])
+        testreport.append(['sysinfo.province_del',param,rj,datetime.datetime.now()-btime,False])
     icount+=1
     param={"token":token,"pid":pid}
     rj=getfun("sysinfo/province_undel",param,False)
@@ -876,9 +981,9 @@ def test_sysinfo_province():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.province_undel',param,rj,True])
+        testreport.append(['sysinfo.province_undel',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.province_undel',param,rj,False])
+        testreport.append(['sysinfo.province_undel',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.province where pid="+str(pid))
     conn.commit()
     time.sleep(1)
@@ -898,46 +1003,52 @@ def test_sysinfo_city():
     cur.execute("delete from sysinfo.city where cid="+str(cid))
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"pid":pid,"cid":cid,"city":city}
     rj=getfun("sysinfo/city_add",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.city_add',param,rj,True])
+        testreport.append(['sysinfo.city_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.city_add',param,rj,False])
+        testreport.append(['sysinfo.city_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"pid":pid,"cid":cid,"city":city}
     rj=getfun("sysinfo/city_edit",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.city_edit',param,rj,True])
+        testreport.append(['sysinfo.city_edit',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.city_edit',param,rj,False])
+        testreport.append(['sysinfo.city_edit',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"pid":pid,"cid":cid,"city":city}
     rj=getfun("sysinfo/city_merge",param,False)
     if rj['errorcode']==0 and check(param):
         isucc+=1
-        testreport.append(['sysinfo.city_merge',param,rj,True])
+        testreport.append(['sysinfo.city_merge',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.city_merge',param,rj,False])
+        testreport.append(['sysinfo.city_merge',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"cid":99}
     rj=getfun("sysinfo/city_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.city_query',param,rj,True])
+        testreport.append(['sysinfo.city_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.city_query',param,rj,False])
+        testreport.append(['sysinfo.city_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"cid":cid,"rows":1,"page":1}
     rj=getfun("sysinfo/city_query",param,False)
     if rj['errorcode']==0 and rj['info']['total']==1:
         isucc+=1
-        testreport.append(['sysinfo.city_query',param,rj,True])
+        testreport.append(['sysinfo.city_query',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.city_query',param,rj,False])
+        testreport.append(['sysinfo.city_query',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"cid":cid}
     rj=getfun("sysinfo/city_del",param,False)
@@ -946,9 +1057,10 @@ def test_sysinfo_city():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.city_del',param,rj,True])
+        testreport.append(['sysinfo.city_del',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.city_del',param,rj,False])
+        testreport.append(['sysinfo.city_del',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()+datetime.timedelta(seconds=1)
     icount+=1
     param={"token":token,"cid":cid}
     rj=getfun("sysinfo/city_undel",param,False)
@@ -957,9 +1069,9 @@ def test_sysinfo_city():
     lines=cur.fetchall()
     if rj['errorcode']==0 and lines[0][0]==1:
         isucc+=1
-        testreport.append(['sysinfo.city_undel',param,rj,True])
+        testreport.append(['sysinfo.city_undel',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.city_undel',param,rj,False])
+        testreport.append(['sysinfo.city_undel',param,rj,datetime.datetime.now()-btime,False])
     cur.execute("delete from sysinfo.city where cid="+str(cid))
     conn.commit()
     time.sleep(1)
@@ -977,115 +1089,128 @@ def test_1_0():
         cur.execute("delete from sysinfo.operpermission where operatorid=99")
         conn.commit()
     operatorid=99
-    operpermissionjson='[{"permissiontype":99,"ifpermission":99,"permissionorder":99,"sysactionid":99,"permissionid":99,"systemid":100}]'
+    operpermissionjson='[{"permissiontype":1,"ifpermission":99,"permissionorder":99,"sysactionid":99,"permissionid":99}]'
     cleardata()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
-    param={"token":token,"operatorid":99,"opeatorname":"测试人员","accounts":"test","tokentype":1,"tokeninterval":180,"sysoperjson":'[{"systemid":100}]'}
+    param={"token":token,"operatorid":99,"opeatorname":"测试人员","accounts":"test","tokentype":1,"tokeninterval":180,"operpermission":{}}
     rj=getfun("sysinfo/operinfo_add",param,False)
     mypass=rj['info']['pass']
     if rj['errorcode']==0 :
         isucc+=1
-        testreport.append(['sysinfo.operinfo_add',param,rj,True])
+        testreport.append(['sysinfo.operinfo_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfo_add',param,rj,False])
+        testreport.append(['sysinfo.operinfo_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
-    param={"token":token,"systemid":99,"systemname":"测试系统","adminid":99,"algrithm":1,"loginname":"test","prikey":"Gao@12345"}
+    param={"token":token,"systemid":99,"systemname":"测试系统","adminid":99,"algorithm":1,"loginname":"test","prikey":"Gao@12345"}
     rj=getfun("sysinfo/systeminfo_add",param,False)
     if rj['errorcode']==0 :
         isucc+=1
-        testreport.append(['sysinfo.systeminfo_add',param,rj,True])
+        testreport.append(['sysinfo.systeminfo_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.systeminfo_add',param,rj,False])
+        testreport.append(['sysinfo.systeminfo_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"sysactionid":99,"sysactionname":"测试系统权限","systemid":99}
     rj=getfun("sysinfo/sysaction_add",param,False)
     if rj['errorcode']==0 :
         isucc+=1
-        testreport.append(['sysinfo.sysaction_add',param,rj,True])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_add',param,rj,False])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"upid":99,"sysactionid":98,"sysactionname":"新增部门类型","actionid":120,"systemid":99}
     rj=getfun("sysinfo/sysaction_add",param,False)
     if rj['errorcode']==0 :
         isucc+=1
-        testreport.append(['sysinfo.sysaction_add',param,rj,True])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_add',param,rj,False])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"upid":99,"sysactionid":97,"sysactionname":"新增部门","actionid":114,"systemid":99}
     rj=getfun("sysinfo/sysaction_add",param,False)
     if rj['errorcode']==0 :
         isucc+=1
-        testreport.append(['sysinfo.sysaction_add',param,rj,True])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_add',param,rj,False])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
-    param={"token":token,"upid":99,"sysactionid":96,"sysactionname":"新增员工","actionid":126,"systemid":99}
+    param={"token":token,"upid":99,"sysactionid":96,"sysactionname":"新增员工所属系统","actionid":126,"systemid":99}
     rj=getfun("sysinfo/sysaction_add",param,False)
     if rj['errorcode']==0 :
         isucc+=1
-        testreport.append(['sysinfo.sysaction_add',param,rj,True])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_add',param,rj,False])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"upid":99,"sysactionid":95,"sysactionname":"新增员工权限","actionid":138,"systemid":99}
     rj=getfun("sysinfo/sysaction_add",param,False)
     if rj['errorcode']==0 :
         isucc+=1
-        testreport.append(['sysinfo.sysaction_add',param,rj,True])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_add',param,rj,False])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1    
-    param={"token":token,"upid":99,"sysactionid":94,"sysactionname":"新增员工权限","actionid":144,"systemid":99}
+    param={"token":token,"upid":99,"sysactionid":94,"sysactionname":"新增员工部门","actionid":144,"systemid":99}
     rj=getfun("sysinfo/sysaction_add",param,False)
     if rj['errorcode']==0 :
         isucc+=1
-        testreport.append(['sysinfo.sysaction_add',param,rj,True])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysaction_add',param,rj,False])
+        testreport.append(['sysinfo.sysaction_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
+    icount+=1
+    param={"token":token,"operatorid":99,"opeatorname":"测试人员","accounts":"test","tokentype":1,"tokeninterval":180,"operpermissionjson":'[{"permissiontype":1,"permissionid":94,"sysactionid":94},{"permissiontype":1,"permissionid":95,"sysactionid":95},{"permissiontype":1,"permissionid":97,"sysactionid":97},{"permissiontype":1,"permissionid":98,"sysactionid":98}]'}
+    rj=getfun("sysinfo/operinfo_edit",param,False)
+    if rj['errorcode']==0:
+        isucc+=1
+        testreport.append(['sysinfo.operinfopermission_add',param,rj,datetime.datetime.now()-btime,True])
+    else:
+        testreport.append(['sysinfo.operinfopermission_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1    
     param={"loginname":"test","pass":mypass,"system":"test"}
     rj=getfun("sysinfo/login",param,False)
     if rj['errorcode']==0:
         isucc+=1
-        testreport.append(['sysinfo.login',param,rj,True])
+        testreport.append(['sysinfo.login',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.login',param,rj,False])
+        testreport.append(['sysinfo.login',param,rj,datetime.datetime.now()-btime,False])
     token=rj["info"]['token']
-    icount+=1
-    param={"token":token,"operatorid":99,"operpermissionjson":'[{"permissiontype":1,"permissionid":99,"systemid":99,"sysactionid":114},{"permissiontype":1,"permissionid":99,"systemid":99,"sysactionid":100}]'}
-    rj=getfun("sysinfo/operinfopermission_add",param,False)
-    if rj['errorcode']==0:
-        isucc+=1
-        testreport.append(['sysinfo.operinfopermission_add',param,rj,True])
-    else:
-        testreport.append(['sysinfo.operinfopermission_add',param,rj,False])
+    btime=datetime.datetime.now()
     icount+=1    
     param={"token":token,"orgtypename":"一般部门","orgtypeid":99,"description":"测试"}
     rj=getfun("sysinfo/orgtype_add",param,False)
     if rj['errorcode']==0:
         isucc+=1
-        testreport.append(['sysinfo.orgtype_add',param,rj,True])
+        testreport.append(['sysinfo.orgtype_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.orgtype_add',param,rj,False])
+        testreport.append(['sysinfo.orgtype_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1    
     param={"token":token,"sysorgname":"测试公司","sysorgid":99,"description":"测试","orgtype":99}
     rj=getfun("sysinfo/sysorg_add",param,False)
     if rj['errorcode']==0:
         isucc+=1
-        testreport.append(['sysinfo.sysorg_add',param,rj,True])
+        testreport.append(['sysinfo.sysorg_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.sysorg_add',param,rj,False])
+        testreport.append(['sysinfo.sysorg_add',param,rj,datetime.datetime.now()-btime,False])
+    btime=datetime.datetime.now()
     icount+=1    
     param={"token":token,"operatorid":98,"operatorname":"测试","sex":1,"phone":"1300","accounts":"test1","sysoperorgjson":'[{"sysorgid":99}]'}
     rj=getfun("sysinfo/operinfoorg_add",param,False)
     if rj['errorcode']==0:
         isucc+=1
-        testreport.append(['sysinfo.operinfoorg_add',param,rj,True])
+        testreport.append(['sysinfo.operinfoorg_add',param,rj,datetime.datetime.now()-btime,True])
     else:
-        testreport.append(['sysinfo.operinfoorg_add',param,rj,False])
+        testreport.append(['sysinfo.operinfoorg_add',param,rj,datetime.datetime.now()-btime,False])
     cleardata()
 
 def test_shop_attrclass():
@@ -1102,6 +1227,7 @@ def test_shop_attrclass():
     cur.execute("delete from shop.attrclass where attrclassid="+str(attrclassid))
     conn.commit()
     time.sleep(1)
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"attrclassid":attrclassid,"attrclassname":attrclassname}
     rj=getfun("shop/attrclass_add",param,False)
@@ -1110,6 +1236,7 @@ def test_shop_attrclass():
         testreport.append(['shop.attrclass_add',param,rj,True])
     else:
         testreport.append(['shop.attrclass_add',param,rj,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"attrclassid":attrclassid,"attrclassname":attrclassname}
     rj=getfun("shop/attrclass_edit",param,False)
@@ -1118,6 +1245,7 @@ def test_shop_attrclass():
         testreport.append(['shop.attrclass_edit',param,rj,True])
     else:
         testreport.append(['shop.attrclass_edit',param,rj,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"attrclassid":attrclassid,"attrclassname":attrclassname}
     rj=getfun("shop/attrclass_merge",param,False)
@@ -1126,6 +1254,7 @@ def test_shop_attrclass():
         testreport.append(['shop.attrclass_merge',param,rj,True])
     else:
         testreport.append(['shop.attrclass_merge',param,rj,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"attrclassid":99}
     rj=getfun("shop/attrclass_query",param,False)
@@ -1134,6 +1263,7 @@ def test_shop_attrclass():
         testreport.append(['shop.attrclass_query',param,rj,True])
     else:
         testreport.append(['shop.attrclass_query',param,rj,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"attrclassid":attrclassid,"rows":1,"page":1}
     rj=getfun("shop/attrclass_query",param,False)
@@ -1142,6 +1272,7 @@ def test_shop_attrclass():
         testreport.append(['shop.attrclass_query',param,rj,True])
     else:
         testreport.append(['shop.attrclass_query',param,rj,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"attrclassid":attrclassid}
     rj=getfun("shop/attrclass_del",param,False)
@@ -1153,6 +1284,7 @@ def test_shop_attrclass():
         testreport.append(['shop.attrclass_del',param,rj,True])
     else:
         testreport.append(['shop.attrclass_del',param,rj,False])
+    btime=datetime.datetime.now()
     icount+=1
     param={"token":token,"attrclassid":attrclassid}
     rj=getfun("shop/attrclass_undel",param,False)
@@ -1432,12 +1564,12 @@ cur=conn.cursor()
 icount=0
 isucc=0
 testreport=[]
-starttime=datetime.now()
+starttime=datetime.datetime.now()
 param={"loginname":loginname,"pass":passward}
 rj=getfun("sysinfo/login",param,True)
 token=rj['info']['token']
-# test_gm_check_login()
-# test_sysinfo_login()
+test_gm_check_login()
+test_sysinfo_login()
 test_sysinfo_systeminfo()
 test_sysinfo_sysaction()
 test_sysinfo_orgtype()
@@ -1447,16 +1579,16 @@ test_sysinfo_operinfo()
 test_sysinfo_operinfoorg()
 test_sysinfo_roleinfo()
 test_sysinfo_operinfopermission()
-# test_sysinfo_province()
-# test_sysinfo_city()
-# test_1_0()
+test_sysinfo_province()
+test_sysinfo_city()
+test_1_0()
 
 # test_shop_attrclass()
 # test_shop_attribute()
 # test_shop_attributevalue()
 # test_shop_category()
 
-endtime=datetime.now()
-report(True)
+endtime=datetime.datetime.now()
+report(True,"report.html")
 conn.commit()
 conn.close

@@ -159,6 +159,7 @@ EOF
             index  index.html index.htm;
         }
 opengaussconn "opengauss连接字符"：用于访问扩展
+
 opengausshelp "opengauss连接字符"：用于访问帮助
 ```nginx
 #下载并编译安装nginx，修改nginx配置文件

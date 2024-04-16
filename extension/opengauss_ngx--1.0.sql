@@ -31,7 +31,8 @@ SET client_min_messages = warning;
 -- Name: postgres; Type: COMMENT; Schema: -; Owner: opengauss
 --
 
-COMMENT ON DATABASE postgres IS 'default administrative connection database';
+COMMENT ON DATABASE postgres IS 'default administrative connection database
+develop';
 
 
 --
@@ -142,13 +143,13 @@ CREATE FUNCTION check_login(p_token character varying, p_actionid integer) RETUR
       return gm.returnjson(0,json_build_object('operatorid',v_operatorid,'systemid',v_systemid,'orgid',v_token->>'orgid'));
     end if;
 		with recursive c as (
-	select c3.sysactionid,c3.permissiontype from sysinfo.operpermission c2 left join sysinfo.rolepermission c3 on c2.actionid=c3.roleinfoid left join sysinfo.sysaction c4 on c2.sysactionid=c4.sysactionid where c2.permissiontype=2 and c2.operatorid=v_operatorid and c4.systemid=v_systemid
+	select c3.sysactionid,c3.permissiontype from sysinfo.operpermission c2 left join sysinfo.rolepermission c3 on c2.sysactionid=c3.roleinfoid left join sysinfo.sysaction c4 on c2.sysactionid=c4.sysactionid where c2.permissiontype=2 and c2.operatorid=v_operatorid and c4.systemid=v_systemid
 	union 
-	select c3.sysactionid,c3.permissiontype from c left join sysinfo.rolepermission c3 on c.actionid=c3.roleinfoid left join sysinfo.sysaction c4 on c3.sysactionid=c4.sysactionid where c.permissiontype=2 and c3.systemid=v_systemid
+	select c3.sysactionid,c3.permissiontype from c left join sysinfo.rolepermission c3 on c.sysactionid=c3.roleinfoid left join sysinfo.sysaction c4 on c3.sysactionid=c4.sysactionid where c.permissiontype=2 and c4.systemid=v_systemid
 	)
     select count(*)
       into v_c
-      from c left join sysinfo.sysaction c1 on c1.sysactionid=c.sysactionid and c1.sysemid=v_systemid
+      from c left join sysinfo.sysaction c1 on c1.sysactionid=c.sysactionid and c1.systemid=v_systemid
      where permissiontype = 1 and position( '.' || coalesce(c1.actionid,c1.sysactionid) || '.' in v_code) > 0;
     if v_c > 0 then
 			update sysinfo.operinfo set tokentime=now()+ (interval '1 minute')*tokeninterval where operatorid=v_operatorid;
@@ -341,6 +342,232 @@ params:参数
 actionurl:权限路径
 code:编码
 返回:{"total":总记录数,"rows":[{"isused":使用,"actionid":权限编号,"actionname":权限名,"description":说明,"params":参数,"actionurl":权限路径,"code":编码}]}';
+
+
+--
+-- Name: city_add(character varying, integer, integer, character varying); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION city_add(p_token character varying, p_pid integer, p_cid integer, p_city character varying) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_id int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,188);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+
+  if p_pid is null then return gm.returnjson(100034); end if;--市信息出错！
+  select count(*) into v_c from sysinfo.province where p_pid=pid;
+  if v_c=0 then return gm.returnjson(100033);end if;--省信息出错！
+  if p_cid is null then 
+    v_c:=1;loop exit when (v_c=0);
+      v_id :=nextval('sysinfo.city_cid_seq');
+      select count(*) into v_c from sysinfo.city where cid=v_id;
+    end loop;
+  else
+    select count(*) into v_c from sysinfo.city where cid=p_cid;
+    if v_c>0 then return gm.returnjson(100034); end if;--市信息出错！
+    v_id:=p_cid;
+  end if;
+  insert into sysinfo.city( pid,cid,city,isused) values(p_pid,v_id,p_city,1 );
+  return gm.returnjson(0,json_build_object('id',v_id));
+end; 
+$$;
+
+
+ALTER FUNCTION sysinfo.city_add(p_token character varying, p_pid integer, p_cid integer, p_city character varying) OWNER TO gm;
+
+--
+-- Name: FUNCTION city_add(p_token character varying, p_pid integer, p_cid integer, p_city character varying) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION city_add(p_token character varying, p_pid integer, p_cid integer, p_city character varying)
+ IS '新增市
+pid:省id
+cid:市id
+city:市名
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
+-- Name: city_del(character varying, integer); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION city_del(p_token character varying, p_cid integer) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,188);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+  select count(*) into v_c from sysinfo.city where cid=p_cid;
+  if v_c=0 then return gm.returnjson(100034); end if;--市信息出错！
+  update sysinfo.city set isused=0 where cid=p_cid;
+  return gm.returnjson(0); 
+end;
+$$;
+
+
+ALTER FUNCTION sysinfo.city_del(p_token character varying, p_cid integer) OWNER TO gm;
+
+--
+-- Name: FUNCTION city_del(p_token character varying, p_cid integer) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION city_del(p_token character varying, p_cid integer)
+ IS '删除市
+cid:id';
+
+
+--
+-- Name: city_edit(character varying, integer, integer, character varying); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION city_edit(p_token character varying, p_pid integer, p_cid integer, p_city character varying) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_id int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,188);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+
+  if p_pid is null then return gm.returnjson(100034); end if;--市信息出错！
+  select count(*) into v_c from sysinfo.province where p_pid=pid;
+  if v_c=0 then return gm.returnjson(100033);end if;--省信息出错！
+  v_id:=p_cid;
+  select count(*) into v_c from sysinfo.city where cid=p_cid;
+  if v_c=0 then return gm.returnjson(100034); end if;--市信息出错！
+  update sysinfo.city set pid=p_pid,city=p_city where cid=p_cid;
+  return gm.returnjson(0);
+end;
+$$;
+
+
+ALTER FUNCTION sysinfo.city_edit(p_token character varying, p_pid integer, p_cid integer, p_city character varying) OWNER TO gm;
+
+--
+-- Name: FUNCTION city_edit(p_token character varying, p_pid integer, p_cid integer, p_city character varying) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION city_edit(p_token character varying, p_pid integer, p_cid integer, p_city character varying)
+ IS '修改市
+pid:省id
+cid:市id
+city:市名
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
+-- Name: city_merge(character varying, integer, integer, character varying); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION city_merge(p_token character varying, p_pid integer, p_cid integer, p_city character varying) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_id int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,188);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+
+  if p_pid is null then return gm.returnjson(100034); end if;--市信息出错！
+  select count(*) into v_c from sysinfo.province where p_pid=pid;
+  if v_c=0 then return gm.returnjson(100033);end if;--省信息出错！
+  if p_cid is null then 
+    v_c:=1;loop exit when (v_c=0);
+      v_id :=nextval('sysinfo.city_cid_seq');
+      select count(*) into v_c from sysinfo.city where cid=v_id;
+    end loop;
+  else
+    v_id:=p_cid;
+  end if;
+  with "te" as (update sysinfo.city set pid=p_pid,city=p_city  where cid=v_id returning *)
+  insert into sysinfo.city ( pid,cid,city,isused) select p_pid,v_id,p_city,1  where (select count(*) from te) = 0;
+  return gm.returnjson(0,json_build_object('id',v_id));
+end; 
+$$;
+
+
+ALTER FUNCTION sysinfo.city_merge(p_token character varying, p_pid integer, p_cid integer, p_city character varying) OWNER TO gm;
+
+--
+-- Name: FUNCTION city_merge(p_token character varying, p_pid integer, p_cid integer, p_city character varying) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION city_merge(p_token character varying, p_pid integer, p_cid integer, p_city character varying)
+ IS '合并市
+pid:省id
+cid:市id
+city:市名
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
+-- Name: city_query(character varying, integer, integer, integer, integer, character varying, integer); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION city_query(p_token character varying, p_rows integer, p_page integer, p_pid integer, p_cid integer, p_city character varying, p_isused integer) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_return json;v_check json;
+begin
+  v_check:=gm.check_login(p_token,188);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+
+  if p_rows is null then
+    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.pid,t1.cid,t1.city,t1.isused,t2.province from sysinfo.city t1 left join sysinfo.province t2 on t2.pid=t1.pid where  (p_pid is null or p_pid=t1.pid) and (p_cid is null or p_cid=t1.cid) and (p_city is null or position(p_city in t1.city )>0) and (p_isused is null or p_isused=t1.isused) order by t1.cid) t;
+    v_c:=coalesce(json_array_length(v_return),0);
+  else
+    select count(*) into v_c from sysinfo.city t1 where  (p_pid is null or p_pid=t1.pid) and (p_cid is null or p_cid=t1.cid) and (p_city is null or position(p_city in t1.city )>0) and (p_isused is null or p_isused=t1.isused);
+    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.pid,t1.cid,t1.city,t1.isused,t2.province from sysinfo.city t1 left join sysinfo.province t2 on t2.pid=t1.pid where  (p_pid is null or p_pid=t1.pid) and (p_cid is null or p_cid=t1.cid) and (p_city is null or position(p_city in t1.city )>0) and (p_isused is null or p_isused=t1.isused) order by t1.cid limit greatest(p_rows,1) offset greatest(least((p_page-1)*p_rows,(v_c/p_rows-1+abs(v_c % p_rows))*p_rows),0) ) t;
+  end if;
+  return gm.returnjson(0,json_build_object('total',v_c,'rows',v_return));
+end;
+$$;
+
+
+ALTER FUNCTION sysinfo.city_query(p_token character varying, p_rows integer, p_page integer, p_pid integer, p_cid integer, p_city character varying, p_isused integer) OWNER TO gm;
+
+--
+-- Name: FUNCTION city_query(p_token character varying, p_rows integer, p_page integer, p_pid integer, p_cid integer, p_city character varying, p_isused integer) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION city_query(p_token character varying, p_rows integer, p_page integer, p_pid integer, p_cid integer, p_city character varying, p_isused integer)
+ IS '查询市
+pid:省id
+cid:市id
+city:市名
+isused:是否使用
+返回:{"total":总记录数,"rows":[{"pid":省id,"cid":市id,"city":市名,"isused":是否使用,"province":省名}]}';
+
+
+--
+-- Name: city_undel(character varying, integer); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION city_undel(p_token character varying, p_cid integer) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,189);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+  select count(*) into v_c from sysinfo.city where cid=p_cid;
+  if v_c=0 then return gm.returnjson(100034); end if;--市信息出错！
+  update sysinfo.city set isused=1 where cid=p_cid;
+  return gm.returnjson(0); 
+end;
+$$;
+
+
+ALTER FUNCTION sysinfo.city_undel(p_token character varying, p_cid integer) OWNER TO gm;
+
+--
+-- Name: FUNCTION city_undel(p_token character varying, p_cid integer) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION city_undel(p_token character varying, p_cid integer)
+ IS '恢复市
+cid:id';
 
 
 --
@@ -556,7 +783,7 @@ ALTER FUNCTION sysinfo.loginaccount(p_loginname character varying, p_system char
 -- Name: operinfo_add(character varying, bigint, character varying, character varying, smallint, integer, json); Type: FUNCTION; Schema: sysinfo; Owner: gm
 --
 
-CREATE FUNCTION operinfo_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json) RETURNS json
+CREATE FUNCTION operinfo_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json) RETURNS json
     LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
  AS $$
 declare v_c int;v_id int;v_check json;v_pass varchar;v_mycode int;
@@ -578,27 +805,31 @@ begin
   end if;
 	v_pass:=substring(md5(random()::varchar),2,8);
 	if p_tokentype!=1 then p_tokentype:=2;end if;
-	delete from sysinfo.sysoper where operatorid=v_id ;
-  insert into sysinfo.sysoper( operatorid,systemid) select v_id,systemid  from (select distinct systemid from json_to_recordset(p_sysoperjson::json,true) as t(systemid int4) where systemid in (select systemid from sysinfo.systeminfo where isused=1)) t;
   insert into sysinfo.operinfo( operatorid,operatorname,accounts,pass,isused,tokentype,tokeninterval,createoperator,createtime) values(v_id,p_operatorname,p_accounts,v_pass,1,p_tokentype,p_tokeninterval,(v_check->'info'->>'operatorid')::integer,now() );
+  insert into sysinfo.operpermission( operatorid,permissionid,permissiontype,ifpermission,permissionorder,params,sysactionid) select distinct p_operatorid,nextval('sysinfo.operpermission_permissionid_seq'),permissiontype,ifpermission,permissionorder,params,sysactionid  from json_to_recordset(p_operpermissionjson::json,true) as t(permissionid int4,permissiontype int2,ifpermission int2,permissionorder int4,params varchar,sysactionid int4)  where  (permissiontype=1 and sysactionid in (select sysactionid from sysinfo.sysaction )) and (permissiontype=2 and sysactionid in (select roleinfoid from sysinfo.roleinfo ));
+	delete from sysinfo.sysoper where operatorid=p_operatorid ;
+  insert into sysinfo.sysoper( systemid,operatorid) select distinct systemid,p_operatorid from (
+	select systemid from sysinfo.roleinfo where roleinfoid in (select sysactionid from operpermission where permissiontype=2 and operatorid=p_operatorid)
+    union 
+  select systemid from sysinfo.sysaction where sysactionid in (select sysactionid from operpermission where permissiontype=1 and operatorid=p_operatorid) ) t;
   return gm.returnjson(0,json_build_object('id',v_id,'pass',v_pass));
 end; 
 $$;
 
 
-ALTER FUNCTION sysinfo.operinfo_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json) OWNER TO gm;
+ALTER FUNCTION sysinfo.operinfo_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json) OWNER TO gm;
 
 --
--- Name: FUNCTION operinfo_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+-- Name: FUNCTION operinfo_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
 --
 
-COMMENT ON FUNCTION operinfo_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json)
- IS '新增员工
+COMMENT ON FUNCTION operinfo_add(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json)
+ IS '新增员工及权限(全系统权限)
 operatorid:员工编号
 operatorname:员工姓名
 tokentype:令牌类型1默认单人登录2多人登录
 tokeninterval:令牌时长默认180分钟
-sysoperjson:操作员所属系统{"systemid":系统id,}
+operpermissionjson:员工权限{"permissiontype":权限类型1权限2角色,"ifpermission":允许,"permissionorder":权限级别,"params":参数,"sysactionid":权限编号,"permissionid":操作员权限编号}
 返回：{"errorcode":0,"message":"执行成功！","info":{"id":id,"pass":密码}'';';
 
 
@@ -637,7 +868,7 @@ operatorid:id';
 -- Name: operinfo_edit(character varying, bigint, character varying, character varying, smallint, integer, json); Type: FUNCTION; Schema: sysinfo; Owner: gm
 --
 
-CREATE FUNCTION operinfo_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json) RETURNS json
+CREATE FUNCTION operinfo_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json) RETURNS json
     LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
  AS $$
 declare v_c int;v_check json;
@@ -649,27 +880,32 @@ begin
   select count(*) into v_c from sysinfo.operinfo where operatorid=p_operatorid and isused=1;
   if v_c=0 then return gm.returnjson(100011); end if;--操作员信息出错！
 	if p_tokentype<>1 then p_tokentype:=2;end if;
-  delete from sysinfo.sysoper where operatorid=p_operatorid ;
-  insert into sysinfo.sysoper( operatorid,systemid) select p_operatorid,systemid  from (select distinct systemid from json_to_recordset(p_sysoperjson::json,true) as t(systemid int4) where systemid in (select systemid from sysinfo.systeminfo where isused=1) ) t;
+	delete from sysinfo.operpermission where operatorid=p_operatorid;
+  insert into sysinfo.operpermission( operatorid,permissionid,permissiontype,ifpermission,permissionorder,params,sysactionid) select distinct p_operatorid,nextval('sysinfo.operpermission_permissionid_seq'),permissiontype,ifpermission,permissionorder,params,sysactionid  from json_to_recordset(p_operpermissionjson::json,true) as t(permissionid int4,permissiontype int2,ifpermission int2,permissionorder int4,params varchar,sysactionid int4)  where  (permissiontype=1 and sysactionid in (select sysactionid from sysinfo.sysaction ))  or (permissiontype=2 and sysactionid in (select roleinfoid from sysinfo.roleinfo ));
   update sysinfo.operinfo set operatorname=p_operatorname,accounts=p_accounts,tokentype=p_tokentype,tokeninterval=p_tokeninterval,updateoperator=(v_check->'info'->>'operatorid')::integer,updatetime=now() where operatorid=p_operatorid;
+	delete from sysinfo.sysoper where operatorid=p_operatorid ;
+  insert into sysinfo.sysoper( systemid,operatorid) select distinct systemid,p_operatorid from (
+	select systemid from sysinfo.roleinfo where roleinfoid in (select sysactionid from operpermission where permissiontype=2 and operatorid=p_operatorid)
+    union 
+  select systemid from sysinfo.sysaction where sysactionid in (select sysactionid from operpermission where permissiontype=1 and operatorid=p_operatorid) ) t;
   return gm.returnjson(0);
 end;
 $$;
 
 
-ALTER FUNCTION sysinfo.operinfo_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json) OWNER TO gm;
+ALTER FUNCTION sysinfo.operinfo_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json) OWNER TO gm;
 
 --
--- Name: FUNCTION operinfo_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+-- Name: FUNCTION operinfo_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
 --
 
-COMMENT ON FUNCTION operinfo_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json)
- IS '修改员工
+COMMENT ON FUNCTION operinfo_edit(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json)
+ IS '修改员工及权限(全系统权限)
 operatorid:员工编号
 operatorname:员工姓名
 tokentype:令牌类型1默认单人登录2多人登录
 tokeninterval:令牌时长默认180分钟
-sysoperjson:操作员所属系统{"systemid":系统id,}
+operpermissionjson:员工权限{"permissiontype":权限类型1权限2角色,"ifpermission":允许,"permissionorder":权限级别,"params":参数,"sysactionid":权限编号,"permissionid":操作员权限编号}
 返回：{"errorcode":0,"message":"执行成功！","info":{"id":id,"pass":密码}'';';
 
 
@@ -677,7 +913,7 @@ sysoperjson:操作员所属系统{"systemid":系统id,}
 -- Name: operinfo_merge(character varying, bigint, character varying, character varying, smallint, integer, json); Type: FUNCTION; Schema: sysinfo; Owner: gm
 --
 
-CREATE FUNCTION operinfo_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json) RETURNS json
+CREATE FUNCTION operinfo_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json) RETURNS json
     LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
  AS $$
 declare v_c int;v_id int;v_check json;
@@ -695,28 +931,33 @@ begin
   else
     v_id:=p_operatorid;
   end if;
-  delete from sysinfo.sysoper where operatorid=v_id ;
-  insert into sysinfo.sysoper( operatorid,systemid) select v_id,systemid  from (select distinct systemid from json_to_recordset(p_sysoperjson::json,true) as t(systemid int4) where systemid in (select systemid from sysinfo.systeminfo where isused=1) ) t;
+	delete from sysinfo.operpermission where operatorid=p_operatorid;
+  insert into sysinfo.operpermission( operatorid,permissionid,permissiontype,ifpermission,permissionorder,params,sysactionid) select distinct v_id,nextval('sysinfo.operpermission_permissionid_seq'),permissiontype,ifpermission,permissionorder,params,sysactionid  from json_to_recordset(p_operpermissionjson::json,true) as t(permissionid int4,permissiontype int2,ifpermission int2,permissionorder int4,params varchar,sysactionid int4)  where  (permissiontype=1 and sysactionid in (select sysactionid from sysinfo.sysaction ))  or (permissiontype=2 and sysactionid in (select roleinfoid from sysinfo.roleinfo ));
   with "te" as (update sysinfo.operinfo set operatorname=p_operatorname,accounts=p_accounts,tokentype=p_tokentype,tokeninterval=p_tokeninterval,updateoperator=(v_check->'info'->>'operatorid')::integer,updatetime=now()  where operatorid=v_id returning *)
   insert into sysinfo.operinfo ( operatorid,operatorname,accounts,isused,tokentype,tokeninterval,createoperator,createtime) select v_id,p_operatorname,p_accounts,1,p_tokentype,p_tokeninterval,(v_check->'info'->>'operatorid')::integer,now() where (select count(*) from te) = 0;
+	delete from sysinfo.sysoper where operatorid=v_id ;
+  insert into sysinfo.sysoper( systemid,operatorid) select distinct systemid,p_operatorid from (
+	select systemid from sysinfo.roleinfo where roleinfoid in (select sysactionid from operpermission where permissiontype=2 and operatorid=p_operatorid)
+    union 
+  select systemid from sysinfo.sysaction where sysactionid in (select sysactionid from operpermission where permissiontype=1 and operatorid=p_operatorid) ) t;
   return gm.returnjson(0,json_build_object('id',v_id));
 end; 
 $$;
 
 
-ALTER FUNCTION sysinfo.operinfo_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json) OWNER TO gm;
+ALTER FUNCTION sysinfo.operinfo_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json) OWNER TO gm;
 
 --
--- Name: FUNCTION operinfo_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+-- Name: FUNCTION operinfo_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
 --
 
-COMMENT ON FUNCTION operinfo_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_sysoperjson json)
- IS '合并员工
+COMMENT ON FUNCTION operinfo_merge(p_token character varying, p_operatorid bigint, p_operatorname character varying, p_accounts character varying, p_tokentype smallint, p_tokeninterval integer, p_operpermissionjson json)
+ IS '合并员工及权限(全系统权限)
 operatorid:员工编号
 operatorname:员工姓名
 tokentype:令牌类型1默认单人登录2多人登录
 tokeninterval:令牌时长默认180分钟
-sysoperjson:操作员所属系统{"systemid":系统id,}
+operpermissionjson:员工权限{"permissiontype":权限类型1权限2角色,"ifpermission":允许,"permissionorder":权限级别,"params":参数,"sysactionid":权限编号,"permissionid":操作员权限编号}
 返回：{"errorcode":0,"message":"执行成功！","info":{"id":id,"pass":密码}'';';
 
 
@@ -1119,6 +1360,17 @@ $$;
 ALTER FUNCTION sysinfo.operinfopermission_add(p_token character varying, p_operatorid bigint, p_operpermissionjson json) OWNER TO gm;
 
 --
+-- Name: FUNCTION operinfopermission_add(p_token character varying, p_operatorid bigint, p_operpermissionjson json) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION operinfopermission_add(p_token character varying, p_operatorid bigint, p_operpermissionjson json)
+ IS '新增员工权限(本系统权限)
+operatorid:员工编号
+operpermissionjson:员工权限{"permissiontype":权限类型1权限2角色,"ifpermission":允许,"permissionorder":权限级别,"params":参数,"sysactionid":权限编号,"permissionid":操作员权限编号}
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
 -- Name: operinfopermission_del(character varying, integer); Type: FUNCTION; Schema: sysinfo; Owner: gm
 --
 
@@ -1132,6 +1384,7 @@ begin
   select count(*) into v_c from sysinfo.operinfo t1 left join sysinfo.sysoper t2 on t1.operatorid=t2.operatorid where t1.operatorid=p_operatorid and t1.isused=1 and t2.systemid=(v_check->'info'->>'systemid')::integer;
   if v_c=0 then return gm.returnjson(100011); end if;--操作员信息出错！
   delete from sysinfo.operpermission where operatorid=p_operatorid and ((permissiontype=1 and sysactionid in (select sysactionid from sysinfo.sysaction where systemid=(v_check->'info'->>'systemid')::integer)) or (permissiontype=2 and sysactionid in (select roleinfoid from sysinfo.roleinfo where systemid=(v_check->'info'->>'systemid')::integer) ));
+	delete from sysinfo.sysoper where operatorid=p_operatorid;
 	update sysinfo.operinfo set isused=0 where operatorid=p_operatorid;
   return gm.returnjson(0); 
 end;
@@ -1176,9 +1429,9 @@ ALTER FUNCTION sysinfo.operinfopermission_edit(p_token character varying, p_oper
 --
 
 COMMENT ON FUNCTION operinfopermission_edit(p_token character varying, p_operatorid bigint, p_operpermissionjson json)
- IS '修改员工权限
+ IS '修改员工权限(本系统权限)
 operatorid:员工编号
-operpermissionjson:员工权限{"permissiontype":权限类型1权限2角色,"ifpermission":允许,"permissionorder":权限级别,"params":参数,"sysactionid":权限编号,"permissionid":操作员权限编号,"systemid":系统id,}
+operpermissionjson:员工权限{"permissiontype":权限类型1权限2角色,"ifpermission":允许,"permissionorder":权限级别,"params":参数,"sysactionid":权限编号,"permissionid":操作员权限编号}
 返回：{"errorcode":0,"message":"执行成功！","info":id}';
 
 
@@ -1484,6 +1737,219 @@ ALTER FUNCTION sysinfo.orgtype_undel(p_token character varying, p_orgtypeid inte
 COMMENT ON FUNCTION orgtype_undel(p_token character varying, p_orgtypeid integer)
  IS '恢复部门类型
 orgtypeid:id';
+
+
+--
+-- Name: province_add(character varying, integer, character varying); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION province_add(p_token character varying, p_pid integer, p_province character varying) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_id int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,182);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+
+  if p_pid is null then 
+    v_c:=1;loop exit when (v_c=0);
+      v_id :=nextval('sysinfo.province_pid_seq');
+      select count(*) into v_c from sysinfo.province where pid=v_id;
+    end loop;
+  else
+    select count(*) into v_c from sysinfo.province where pid=p_pid;
+    if v_c>0 then return gm.returnjson(100033); end if;--省信息出错！
+    v_id:=p_pid;
+  end if;
+  insert into sysinfo.province( pid,province,isused) values(v_id,p_province,1 );
+  return gm.returnjson(0,json_build_object('id',v_id));
+end; 
+$$;
+
+
+ALTER FUNCTION sysinfo.province_add(p_token character varying, p_pid integer, p_province character varying) OWNER TO gm;
+
+--
+-- Name: FUNCTION province_add(p_token character varying, p_pid integer, p_province character varying) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION province_add(p_token character varying, p_pid integer, p_province character varying)
+ IS '新增省
+pid:省id
+province:省名
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
+-- Name: province_del(character varying, integer); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION province_del(p_token character varying, p_pid integer) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,182);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+  select count(*) into v_c from sysinfo.province where pid=p_pid;
+  if v_c=0 then return gm.returnjson(100033); end if;--省信息出错！
+  update sysinfo.province set isused=0 where pid=p_pid;
+  return gm.returnjson(0); 
+end;
+$$;
+
+
+ALTER FUNCTION sysinfo.province_del(p_token character varying, p_pid integer) OWNER TO gm;
+
+--
+-- Name: FUNCTION province_del(p_token character varying, p_pid integer) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION province_del(p_token character varying, p_pid integer)
+ IS '删除省
+pid:id';
+
+
+--
+-- Name: province_edit(character varying, integer, character varying); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION province_edit(p_token character varying, p_pid integer, p_province character varying) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_id int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,182);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+
+  v_id:=p_pid;
+  select count(*) into v_c from sysinfo.province where pid=p_pid;
+  if v_c=0 then return gm.returnjson(100033); end if;--省信息出错！
+  update sysinfo.province set province=p_province where pid=p_pid;
+  return gm.returnjson(0);
+end;
+$$;
+
+
+ALTER FUNCTION sysinfo.province_edit(p_token character varying, p_pid integer, p_province character varying) OWNER TO gm;
+
+--
+-- Name: FUNCTION province_edit(p_token character varying, p_pid integer, p_province character varying) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION province_edit(p_token character varying, p_pid integer, p_province character varying)
+ IS '修改省
+pid:省id
+province:省名
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
+-- Name: province_merge(character varying, integer, character varying); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION province_merge(p_token character varying, p_pid integer, p_province character varying) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_id int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,182);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+
+  if p_pid is null then 
+    v_c:=1;loop exit when (v_c=0);
+      v_id :=nextval('sysinfo.province_pid_seq');
+      select count(*) into v_c from sysinfo.province where pid=v_id;
+    end loop;
+  else
+    v_id:=p_pid;
+  end if;
+  with "te" as (update sysinfo.province set province=p_province  where pid=v_id returning *)
+  insert into sysinfo.province ( pid,province,isused) select v_id,p_province,1  where (select count(*) from te) = 0;
+  return gm.returnjson(0,json_build_object('id',v_id));
+end; 
+$$;
+
+
+ALTER FUNCTION sysinfo.province_merge(p_token character varying, p_pid integer, p_province character varying) OWNER TO gm;
+
+--
+-- Name: FUNCTION province_merge(p_token character varying, p_pid integer, p_province character varying) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION province_merge(p_token character varying, p_pid integer, p_province character varying)
+ IS '合并省
+pid:省id
+province:省名
+返回：{"errorcode":0,"message":"执行成功！","info":id}';
+
+
+--
+-- Name: province_query(character varying, integer, integer, integer, character varying, integer); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION province_query(p_token character varying, p_rows integer, p_page integer, p_pid integer, p_province character varying, p_isused integer) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_return json;v_check json;
+begin
+  v_check:=gm.check_login(p_token,182);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+
+  if p_rows is null then
+    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.pid,t1.province,t1.isused from sysinfo.province t1 where  (p_pid is null or p_pid=t1.pid) and (p_province is null or position(p_province in t1.province )>0) and (p_isused is null or p_isused=t1.isused) order by t1.pid) t;
+    v_c:=coalesce(json_array_length(v_return),0);
+  else
+    select count(*) into v_c from sysinfo.province t1 where  (p_pid is null or p_pid=t1.pid) and (p_province is null or position(p_province in t1.province )>0) and (p_isused is null or p_isused=t1.isused);
+    select array_to_json(array_agg(row_to_json(t))) into v_return from (select  t1.pid,t1.province,t1.isused from sysinfo.province t1 where  (p_pid is null or p_pid=t1.pid) and (p_province is null or position(p_province in t1.province )>0) and (p_isused is null or p_isused=t1.isused) order by t1.pid limit greatest(p_rows,1) offset greatest(least((p_page-1)*p_rows,(v_c/p_rows-1+abs(v_c % p_rows))*p_rows),0) ) t;
+  end if;
+  return gm.returnjson(0,json_build_object('total',v_c,'rows',v_return));
+end;
+$$;
+
+
+ALTER FUNCTION sysinfo.province_query(p_token character varying, p_rows integer, p_page integer, p_pid integer, p_province character varying, p_isused integer) OWNER TO gm;
+
+--
+-- Name: FUNCTION province_query(p_token character varying, p_rows integer, p_page integer, p_pid integer, p_province character varying, p_isused integer) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION province_query(p_token character varying, p_rows integer, p_page integer, p_pid integer, p_province character varying, p_isused integer)
+ IS '查询省
+pid:省id
+province:省名
+isused:是否使用
+返回:{"total":总记录数,"rows":[{"pid":省id,"province":省名,"isused":是否使用}]}';
+
+
+--
+-- Name: province_undel(character varying, integer); Type: FUNCTION; Schema: sysinfo; Owner: gm
+--
+
+CREATE FUNCTION province_undel(p_token character varying, p_pid integer) RETURNS json
+    LANGUAGE plpgsql NOT SHIPPABLE SECURITY DEFINER
+ AS $$
+declare v_c int;v_check json;
+begin
+  v_check:=gm.check_login(p_token,183);
+  if v_check->>'errorcode'<>'0' then return v_check; end if;
+  select count(*) into v_c from sysinfo.province where pid=p_pid;
+  if v_c=0 then return gm.returnjson(100033); end if;--省信息出错！
+  update sysinfo.province set isused=1 where pid=p_pid;
+  return gm.returnjson(0); 
+end;
+$$;
+
+
+ALTER FUNCTION sysinfo.province_undel(p_token character varying, p_pid integer) OWNER TO gm;
+
+--
+-- Name: FUNCTION province_undel(p_token character varying, p_pid integer) ; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON FUNCTION province_undel(p_token character varying, p_pid integer)
+ IS '恢复省
+pid:id';
 
 
 --
@@ -1874,7 +2340,13 @@ begin
     if v_c>0 then return gm.returnjson(100013); end if;--系统权限信息出错！
     v_id:=p_sysactionid;
   end if;
-  insert into sysinfo.sysaction( upid,isused,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(coalesce(p_upid,100),1,p_params,p_systemid,v_id,p_sysactionname,p_actionid,p_isdefault );
+  insert into sysinfo.sysaction( upid,isused,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(coalesce(p_upid,0),1,p_params,p_systemid,v_id,p_sysactionname,p_actionid,p_isdefault );
+  with recursive tree as
+  ( select sysactionid,upid,1 as idlevel,coalesce(actionid,sysactionid)::varchar as idpath,t1.systemid from sysinfo.sysaction t1 where upid=0
+  union
+  select t1.sysactionid,t1.upid,t2.idlevel+1,t2.idpath||'.'||coalesce(t1.actionid,t1.sysactionid),t1.systemid from sysinfo.sysaction t1 inner join tree t2 on t2.sysactionid=t1.upid and t2.systemid=t1.systemid where isused<>0) 
+  update sysinfo.sysaction t set idpath=t1.idpath,idlevel=t1.idlevel,idcount=coalesce(cc,0) from tree t1 left join (select upid,count(*) cc,systemid from sysinfo.sysaction where isused<>0 group by upid,systemid) t2 on t1.sysactionid=t2.upid and t1.systemid=t2.systemid
+  where t.sysactionid=t1.sysactionid;
   return gm.returnjson(0,json_build_object('id',v_id));
 end; 
 $$;
@@ -1962,12 +2434,12 @@ begin
     if position('.'||p_sysactionid||'.' in '.'||v_idpath||'.')>0 then return gm.returnjson(100017);end if;--上级机构不能循环定义
   end if;
 	if p_isdefault<>0 then p_isdefault:=1;end if;
-	update sysinfo.sysaction set upid=coalesce(p_upid,100),params=p_params,systemid=p_systemid,sysactionname=p_sysactionname,actionid=p_actionid,isdefault=p_isdefault  where sysactionid=p_sysactionid;
+	update sysinfo.sysaction set upid=coalesce(p_upid,0),params=p_params,systemid=p_systemid,sysactionname=p_sysactionname,actionid=p_actionid,isdefault=p_isdefault  where sysactionid=p_sysactionid;
   with recursive tree as
-  ( select sysactionid,upid,1 as idlevel,sysactionid::varchar as idpath,t1.systemid from sysinfo.sysaction t1 where upid=0
+  ( select sysactionid,upid,1 as idlevel,coalesce(actionid,sysactionid)::varchar as idpath,t1.systemid from sysinfo.sysaction t1 where upid=0
   union
-  select t1.sysactionid,t1.upid,t2.idlevel+1,t2.idpath||'.'||t1.sysactionid,t1.systemid from sysinfo.sysaction t1 inner join tree t2 on t2.sysactionid=t1.upid and t2.systemid=t1.systemid where isused<>0) 
-  update sysinfo.sysaction t set idpath=t1.idpath,idlevel=t1.idlevel,idcount=coalesce(cc,0) from tree t1 left join (select upid,count(*) cc,systemid from sysinfo.sysaction where isused<>0 group by upid,systemid) t2 on t1.sysactionid=t2.upid
+  select t1.sysactionid,t1.upid,t2.idlevel+1,t2.idpath||'.'||coalesce(t1.actionid,t1.sysactionid),t1.systemid from sysinfo.sysaction t1 inner join tree t2 on t2.sysactionid=t1.upid and t2.systemid=t1.systemid where isused<>0) 
+  update sysinfo.sysaction t set idpath=t1.idpath,idlevel=t1.idlevel,idcount=coalesce(cc,0) from tree t1 left join (select upid,count(*) cc,systemid from sysinfo.sysaction where isused<>0 group by upid,systemid) t2 on t1.sysactionid=t2.upid and t1.systemid=t2.systemid
   where t.sysactionid=t1.sysactionid;
   return gm.returnjson(0);
 end;
@@ -2777,6 +3249,70 @@ COMMENT ON COLUMN appparams.typeid IS '类型1:微信';
 
 
 --
+-- Name: city; Type: TABLE; Schema: sysinfo; Owner: gm; Tablespace: 
+--
+
+CREATE TABLE city (
+    pid integer NOT NULL,
+    cid integer NOT NULL,
+    city character varying(255),
+    isused smallint
+)
+WITH (orientation=row, compression=no);
+
+
+ALTER TABLE sysinfo.city OWNER TO gm;
+
+--
+-- Name: TABLE city; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON TABLE city IS '市';
+
+
+--
+-- Name: COLUMN city.pid; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON COLUMN city.pid IS '省id';
+
+
+--
+-- Name: COLUMN city.cid; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON COLUMN city.cid IS '市id';
+
+
+--
+-- Name: COLUMN city.city; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON COLUMN city.city IS '市名';
+
+
+--
+-- Name: COLUMN city.isused; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON COLUMN city.isused IS '是否使用';
+
+
+--
+-- Name: city_cid_seq; Type: SEQUENCE; Schema: sysinfo; Owner: gm
+--
+
+CREATE  SEQUENCE city_cid_seq
+    START WITH 100
+    INCREMENT BY 1
+    MINVALUE 100
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE sysinfo.city_cid_seq OWNER TO gm;
+
+--
 -- Name: errorcode; Type: TABLE; Schema: sysinfo; Owner: gm; Tablespace: 
 --
 
@@ -3316,6 +3852,62 @@ CREATE  SEQUENCE orgtype_orgtypeid_seq
 
 
 ALTER SEQUENCE sysinfo.orgtype_orgtypeid_seq OWNER TO gm;
+
+--
+-- Name: province; Type: TABLE; Schema: sysinfo; Owner: gm; Tablespace: 
+--
+
+CREATE TABLE province (
+    pid integer NOT NULL,
+    province character varying(255),
+    isused smallint
+)
+WITH (orientation=row, compression=no);
+
+
+ALTER TABLE sysinfo.province OWNER TO gm;
+
+--
+-- Name: TABLE province; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON TABLE province IS '省';
+
+
+--
+-- Name: COLUMN province.pid; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON COLUMN province.pid IS '省id';
+
+
+--
+-- Name: COLUMN province.province; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON COLUMN province.province IS '省名';
+
+
+--
+-- Name: COLUMN province.isused; Type: COMMENT; Schema: sysinfo; Owner: gm
+--
+
+COMMENT ON COLUMN province.isused IS '是否使用';
+
+
+--
+-- Name: province_pid_seq; Type: SEQUENCE; Schema: sysinfo; Owner: gm
+--
+
+CREATE  SEQUENCE province_pid_seq
+    START WITH 100
+    INCREMENT BY 1
+    MINVALUE 100
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE sysinfo.province_pid_seq OWNER TO gm;
 
 --
 -- Name: roleinfo; Type: TABLE; Schema: sysinfo; Owner: gm; Tablespace: 
@@ -4046,6 +4638,14 @@ ALTER TABLE appparams
 
 
 --
+-- Name: city_pkey; Type: CONSTRAINT; Schema: sysinfo; Owner: gm; Tablespace: 
+--
+
+ALTER TABLE city
+    ADD CONSTRAINT city_pkey PRIMARY KEY  (cid);
+
+
+--
 -- Name: employeepermission_pkey; Type: CONSTRAINT; Schema: sysinfo; Owner: gm; Tablespace: 
 --
 
@@ -4091,6 +4691,14 @@ ALTER TABLE operinfo
 
 ALTER TABLE orgtype
     ADD CONSTRAINT orgtype_pkey PRIMARY KEY  (orgtypeid);
+
+
+--
+-- Name: province_pkey; Type: CONSTRAINT; Schema: sysinfo; Owner: gm; Tablespace: 
+--
+
+ALTER TABLE province
+    ADD CONSTRAINT province_pkey PRIMARY KEY  (pid);
 
 
 --
@@ -4241,91 +4849,119 @@ insert into sysinfo.actions(isused,actionid,actionname,description,params,action
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,117,'删除部门',null,null,'sysinfo/sysorg_del',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,118,'恢复部门',null,null,'sysinfo/sysorg_undel',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,119,'查询部门',null,null,'sysinfo/sysorg_query',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,182,'新增省',null,null,'sysinfo/province_add',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,183,'修改省',null,null,'sysinfo/province_edit',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,184,'合并省',null,null,'sysinfo/province_merge',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,185,'删除省',null,null,'sysinfo/province_del',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,187,'查询省',null,null,'sysinfo/province_query',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,107,'查询系统日志',null,null,'sysinfo/serverlog_query',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,180,'查询权限名',null,null,'sysinfo/actions_query',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,126,'新增员工所属系统',null,null,'sysinfo/operinfo_add',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,127,'修改员工所属系统',null,null,'sysinfo/operinfo_edit',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,181,'查询出错代码',null,null,'sysinfo/errorcode_query',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,186,'恢复省',null,null,'sysinfo/province_undel',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,188,'新增市',null,null,'sysinfo/city_add',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,189,'修改市',null,null,'sysinfo/city_edit',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,120,'新增部门类型',null,null,'sysinfo/orgtype_add',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,121,'修改部门类型',null,null,'sysinfo/orgtype_edit',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,122,'合并部门类型',null,null,'sysinfo/orgtype_merge',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,123,'删除部门类型',null,null,'sysinfo/orgtype_del',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,124,'恢复部门类型',null,null,'sysinfo/orgtype_undel',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,125,'查询部门类型',null,null,'sysinfo/orgtype_query',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,190,'合并市',null,null,'sysinfo/city_merge',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,191,'删除市',null,null,'sysinfo/city_del',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,192,'恢复市',null,null,'sysinfo/city_undel',null);
+insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,193,'查询市',null,null,'sysinfo/city_query',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,108,'新增系统权限',null,null,'sysinfo/sysaction_add',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,109,'修改系统权限',null,null,'sysinfo/sysaction_edit',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,110,'合并系统权限',null,null,'sysinfo/sysaction_merge',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,111,'删除系统权限',null,null,'sysinfo/sysaction_del',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,112,'恢复系统权限',null,null,'sysinfo/sysaction_undel',null);
 insert into sysinfo.actions(isused,actionid,actionname,description,params,actionurl,code) values(1,113,'查询系统权限',null,null,'sysinfo/sysaction_query',null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9108.180',3,0,9108,null,100,180,'查询权限名',180,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9109.181',3,0,9109,null,100,181,'查询出错代码',181,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003',2,2,100,null,100,9003,'公共数据',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9112',3,6,9003,null,100,9112,'市',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9112.188',4,0,9112,null,100,188,'新增市',188,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9112.189',4,0,9112,null,100,189,'修改市',189,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9112.190',4,0,9112,null,100,190,'修改市',190,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9112.191',4,0,9112,null,100,191,'删除市',191,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.117',4,0,9102,null,100,117,'删除部门',117,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.133',4,0,9105,null,100,133,'修改角色',133,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.137',4,0,9105,null,100,137,'查询角色',137,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.119',4,0,9102,null,100,119,'查询部门',119,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.115',4,0,9102,null,100,115,'修改部门',115,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.122',4,0,9101,null,100,122,'合并部门类型',122,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.123',4,0,9101,null,100,123,'删除部门类型',123,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.124',4,0,9101,null,100,124,'恢复部门类型',124,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.125',4,0,9101,null,100,125,'查询部门类型',125,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.128',4,0,9104,null,100,128,'合并员工所属系统',128,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.129',4,0,9104,null,100,129,'删除员工所属系统',129,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9108',2,1,100,null,100,9108,'权限名',null,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.107',2,0,100,null,100,107,'查询系统日志',107,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.130',4,0,9104,null,100,130,'恢复员工所属系统',130,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.131',4,0,9104,null,100,131,'查询员工所属系统',131,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.150',2,0,100,null,100,150,'登录',150,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100',3,6,9001,null,100,9100,'系统权限',null,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.118',4,0,9102,null,100,118,'恢复部门',118,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.142',4,0,9107,null,100,142,'恢复员工权限',142,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.143',4,0,9107,null,100,143,'查询员工权限',143,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.132',4,0,9105,null,100,132,'新增角色',132,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9103.106',4,0,9103,null,100,106,'查询子系统',106,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.111',4,0,9100,null,100,111,'删除系统权限',111,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.112',4,0,9100,null,100,112,'恢复系统权限',112,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9109',2,1,100,null,100,9109,'出错代码',null,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.139',4,0,9107,null,100,139,'修改员工权限',139,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.140',4,0,9107,null,100,140,'合并员工权限',140,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.141',4,0,9107,null,100,141,'删除员工权限',141,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9103.103',3,0,9103,null,100,103,'合并子系统',103,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9103.104',3,0,9103,null,100,104,'删除子系统',104,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.171',2,0,100,'101',100,171,'微信注册',171,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.120',4,0,9101,null,100,120,'新增部门类型',120,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.121',4,0,9101,null,100,121,'修改部门类型',121,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.160',2,0,100,'101',100,160,'微信登录',160,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.109',4,0,9100,null,100,109,'修改系统权限',109,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.110',4,0,9100,null,100,110,'合并系统权限',110,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.126',4,0,9104,null,100,126,'新增员工所属系统',126,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.127',4,0,9104,null,100,127,'修改员工所属系统',127,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100',1,11,0,null,100,100,'系统',null,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001',2,2,100,null,100,9001,'系统管理',null,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002',2,5,100,null,100,9002,'本系统管理',null,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9103',2,6,100,null,100,9103,'系统日志',null,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.113',4,0,9100,null,100,113,'查询系统权限',113,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9103.105',3,0,9103,null,100,105,'恢复子系统',105,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9103.106',3,0,9103,null,100,106,'查询子系统',106,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105',3,6,9002,null,100,9105,'角色',null,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106',3,6,9002,null,100,9106,'员工部门',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9111.187',4,0,9111,null,100,187,'查询省',187,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9110.107',4,0,9110,null,100,107,'查询系统日志',107,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106.144',4,0,9106,null,100,144,'新增员工部门',144,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106.148',4,0,9106,null,100,148,'恢复员工部门',148,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.126',4,0,9104,null,100,126,'新增员工所属系统',126,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.112',4,0,9100,null,100,112,'恢复系统权限',112,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101',3,6,9002,null,100,9101,'部门类型',null,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.114',4,0,9102,null,100,114,'新增部门',114,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102',3,6,9002,null,100,9102,'部门',null,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104',3,6,9001,null,100,9104,'员工所属系统',null,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107',3,6,9002,null,100,9107,'员工权限',null,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106.144',4,0,9106,null,100,144,'新增员工部门',144,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106.148',4,0,9106,null,100,148,'恢复员工部门',148,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106.149',4,0,9106,null,100,149,'查询员工部门',149,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9103.101',3,0,9103,null,100,101,'新增子系统',101,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.161',2,0,100,null,100,161,'注册',161,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.116',4,0,9102,null,100,116,'合并部门',116,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.117',4,0,9102,null,100,117,'删除部门',117,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.133',4,0,9105,null,100,133,'修改角色',133,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.137',4,0,9105,null,100,137,'查询角色',137,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.119',4,0,9102,null,100,119,'查询部门',119,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.134',4,0,9105,null,100,134,'合并角色',134,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.135',4,0,9105,null,100,135,'删除角色',135,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.136',4,0,9105,null,100,136,'恢复角色',136,null);
-insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9103.102',3,0,9103,null,100,102,'修改子系统',102,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.150',2,0,100,null,100,150,'登录',150,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.108',4,0,9100,null,100,108,'新增系统权限',108,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.113',4,0,9100,null,100,113,'查询系统权限',113,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9103.105',4,0,9103,null,100,105,'恢复子系统',105,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.171',2,0,100,'101',100,171,'微信注册',171,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.120',4,0,9101,null,100,120,'新增部门类型',120,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9111.182',4,0,9111,null,100,182,'新增省',182,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9103',3,6,9001,null,100,9103,'子系统管理',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105',3,6,9002,null,100,9105,'角色',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.134',4,0,9105,null,100,134,'合并角色',134,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.138',4,0,9107,null,100,138,'新增员工权限',138,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106.146',4,0,9106,null,100,146,'合并员工部门',146,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106.145',4,0,9106,null,100,145,'修改员工部门',145,null);
 insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106.147',4,0,9106,null,100,147,'删除员工部门',147,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9111',3,6,9003,null,100,9111,'省',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9112.192',4,0,9112,null,100,192,'恢复市',192,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9112.193',4,0,9112,null,100,193,'查询市',193,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.127',4,0,9104,null,100,127,'修改员工所属系统',127,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100',1,7,0,null,100,100,'系统',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001',2,6,100,null,100,9001,'系统管理',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002',2,5,100,null,100,9002,'本系统管理',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.118',4,0,9102,null,100,118,'恢复部门',118,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.142',4,0,9107,null,100,142,'恢复员工权限',142,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.143',4,0,9107,null,100,143,'查询员工权限',143,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.132',4,0,9105,null,100,132,'新增角色',132,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.121',4,0,9101,null,100,121,'修改部门类型',121,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.160',2,0,100,'101',100,160,'微信登录',160,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.122',4,0,9101,null,100,122,'合并部门类型',122,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.123',4,0,9101,null,100,123,'删除部门类型',123,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.124',4,0,9101,null,100,124,'恢复部门类型',124,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9101.125',4,0,9101,null,100,125,'查询部门类型',125,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9111.183',4,0,9111,null,100,183,'修改省',183,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9111.184',4,0,9111,null,100,184,'合并省',184,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9111.185',4,0,9111,null,100,185,'删除省',185,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.131',4,0,9104,null,100,131,'查询员工所属系统',131,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.141',4,0,9107,null,100,141,'删除员工权限',141,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9103.103',4,0,9103,null,100,103,'合并子系统',103,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9103.104',4,0,9103,null,100,104,'删除子系统',104,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9102.116',4,0,9102,null,100,116,'合并部门',116,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.130',4,0,9104,null,100,130,'恢复员工所属系统',130,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.109',4,0,9100,null,100,109,'修改系统权限',109,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100.110',4,0,9100,null,100,110,'合并系统权限',110,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9109',3,1,9001,null,100,9109,'出错代码',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9100',3,6,9001,null,100,9100,'系统权限',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9106.149',4,0,9106,null,100,149,'查询员工部门',149,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9103.101',4,0,9103,null,100,101,'新增子系统',101,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.161',2,0,100,null,100,161,'注册',161,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9103.102',4,0,9103,null,100,102,'修改子系统',102,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9108',3,1,9001,null,100,9108,'权限名',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.128',4,0,9104,null,100,128,'合并员工所属系统',128,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9104.129',4,0,9104,null,100,129,'删除员工所属系统',129,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.139',4,0,9107,null,100,139,'修改员工权限',139,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9107.140',4,0,9107,null,100,140,'合并员工权限',140,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9003.9111.186',4,0,9111,null,100,186,'恢复省',186,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9110',3,1,9001,null,100,9110,'系统日志',null,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9108.180',4,0,9108,null,100,180,'查询权限名',180,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9001.9109.181',4,0,9109,null,100,181,'查询出错代码',181,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.135',4,0,9105,null,100,135,'删除角色',135,null);
+insert into sysinfo.sysaction(isused,idpath,idlevel,idcount,upid,params,systemid,sysactionid,sysactionname,actionid,isdefault) values(1,'100.9002.9105.136',4,0,9105,null,100,136,'恢复角色',136,null);
 insert into sysinfo.errorcode(message,errorcode,primekey,isused,schema) values('操作员信息出错！',100011,'operatorid',1,'sysinfo.operinfo');
 insert into sysinfo.errorcode(message,errorcode,primekey,isused,schema) values('权限信息出错！',100013,'sysactionid',1,'sysinfo.sysaction');
 insert into sysinfo.errorcode(message,errorcode,primekey,isused,schema) values('上级不存在！',100014,null,1,null);
@@ -4357,6 +4993,8 @@ insert into sysinfo.errorcode(message,errorcode,primekey,isused,schema) values('
 insert into sysinfo.errorcode(message,errorcode,primekey,isused,schema) values('系统日志信息出错！',100030,'logid',1,'sysinfo.serverlog');
 insert into sysinfo.errorcode(message,errorcode,primekey,isused,schema) values('权限名信息出错！',100031,'actionid',1,'sysinfo.actions');
 insert into sysinfo.errorcode(message,errorcode,primekey,isused,schema) values('出错代码信息出错！',100032,'errorcode',1,'sysinfo.errorcode');
+insert into sysinfo.errorcode(message,errorcode,primekey,isused,schema) values('省信息出错！',100033,'pid',1,'sysinfo.province');
+insert into sysinfo.errorcode(message,errorcode,primekey,isused,schema) values('市信息出错！',100034,'cid',1,'sysinfo.city');
 insert into sysinfo.funchtml(htmlid,html1,html2) values(100,'<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10362,3 +11000,397 @@ insert into sysinfo.funchtml(htmlid,html1,html2) values(100,'<!DOCTYPE html>
   </body>
 </html>
 ');
+insert into sysinfo.province(pid,province,isused) values(34,'安徽省',null);
+insert into sysinfo.province(pid,province,isused) values(32,'江苏省',null);
+insert into sysinfo.province(pid,province,isused) values(33,'浙江省',null);
+insert into sysinfo.province(pid,province,isused) values(46,'海南省',null);
+insert into sysinfo.province(pid,province,isused) values(64,'宁夏回族自治区',null);
+insert into sysinfo.province(pid,province,isused) values(65,'新疆维吾尔自治区',null);
+insert into sysinfo.province(pid,province,isused) values(45,'广西壮族自治区',null);
+insert into sysinfo.province(pid,province,isused) values(62,'甘肃省',null);
+insert into sysinfo.province(pid,province,isused) values(22,'吉林省',null);
+insert into sysinfo.province(pid,province,isused) values(61,'陕西省',null);
+insert into sysinfo.province(pid,province,isused) values(81,'香港特别行政区',null);
+insert into sysinfo.province(pid,province,isused) values(14,'山西省',null);
+insert into sysinfo.province(pid,province,isused) values(51,'四川省',null);
+insert into sysinfo.province(pid,province,isused) values(23,'黑龙江省',null);
+insert into sysinfo.province(pid,province,isused) values(21,'辽宁省',null);
+insert into sysinfo.province(pid,province,isused) values(54,'西藏自治区',null);
+insert into sysinfo.province(pid,province,isused) values(52,'贵州省',null);
+insert into sysinfo.province(pid,province,isused) values(44,'广东省',null);
+insert into sysinfo.province(pid,province,isused) values(53,'云南省',null);
+insert into sysinfo.province(pid,province,isused) values(50,'重庆市',null);
+insert into sysinfo.province(pid,province,isused) values(12,'天津市',null);
+insert into sysinfo.province(pid,province,isused) values(15,'内蒙古自治区',null);
+insert into sysinfo.province(pid,province,isused) values(31,'上海市',null);
+insert into sysinfo.province(pid,province,isused) values(11,'北京市',null);
+insert into sysinfo.province(pid,province,isused) values(43,'湖南省',null);
+insert into sysinfo.province(pid,province,isused) values(63,'青海省',null);
+insert into sysinfo.province(pid,province,isused) values(13,'河北省',null);
+insert into sysinfo.province(pid,province,isused) values(41,'河南省',null);
+insert into sysinfo.province(pid,province,isused) values(35,'福建省',null);
+insert into sysinfo.province(pid,province,isused) values(37,'山东省',null);
+insert into sysinfo.province(pid,province,isused) values(36,'江西省',null);
+insert into sysinfo.province(pid,province,isused) values(71,'台湾省',null);
+insert into sysinfo.province(pid,province,isused) values(82,'澳门特别行政区',null);
+insert into sysinfo.province(pid,province,isused) values(42,'湖北省',null);
+insert into sysinfo.city(pid,cid,city,isused) values(11,1100,'北京市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1301,'石家庄市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4409,'茂名市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4412,'肇庆市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4413,'惠州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4414,'梅州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4415,'汕尾市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4416,'河源市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4417,'阳江市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4418,'清远市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4419,'东莞市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4420,'中山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4451,'潮州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4452,'揭阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4453,'云浮市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4501,'南宁市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4502,'柳州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1308,'承德市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1309,'沧州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1310,'廊坊市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1311,'衡水市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1401,'太原市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1402,'大同市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1403,'阳泉市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1404,'长治市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5307,'丽江市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1405,'晋城市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1406,'朔州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1407,'晋中市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1408,'运城市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1409,'忻州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1410,'临汾市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(14,1411,'吕梁市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1501,'呼和浩特市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1502,'包头市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1503,'乌海市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1504,'赤峰市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1505,'通辽市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1506,'鄂尔多斯市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1507,'呼伦贝尔市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1508,'巴彦淖尔市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4111,'漯河市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1509,'乌兰察布市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1525,'锡林郭勒盟',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6103,'宝鸡市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1529,'阿拉善盟',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2101,'沈阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2102,'大连市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2103,'鞍山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2104,'抚顺市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2105,'本溪市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2106,'丹东市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2107,'锦州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2108,'营口市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2109,'阜新市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2110,'辽阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2111,'盘锦市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2112,'铁岭市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2113,'朝阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(21,2114,'葫芦岛市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(22,2201,'长春市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(22,2202,'吉林市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(22,2203,'四平市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(22,2204,'辽源市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(22,2205,'通化市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(22,2206,'白山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(22,2207,'松原市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(22,2208,'白城市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(22,2224,'延边朝鲜族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2301,'哈尔滨市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2302,'齐齐哈尔市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2305,'双鸭山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2306,'大庆市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2308,'佳木斯市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2309,'七台河市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2310,'牡丹江市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2307,'伊春市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2311,'黑河市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2312,'绥化市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2327,'大兴安岭地区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3202,'无锡市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3203,'徐州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3204,'常州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3205,'苏州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3206,'南通市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3207,'连云港市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3208,'淮安市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3209,'盐城市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3210,'扬州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3212,'泰州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3213,'宿迁市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3301,'杭州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3302,'宁波市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3303,'温州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3304,'嘉兴市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3305,'湖州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3306,'绍兴市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3307,'金华市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3308,'衢州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3309,'舟山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3310,'台州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(33,3311,'丽水市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3401,'合肥市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3402,'芜湖市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3403,'蚌埠市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3404,'淮南市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3405,'马鞍山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3406,'淮北市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3407,'铜陵市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(52,5203,'遵义市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3410,'黄山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3411,'滁州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3412,'阜阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3413,'宿州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3415,'六安市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3416,'亳州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3417,'池州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3418,'宣城市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4107,'新乡市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(35,3501,'福州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(35,3502,'厦门市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(35,3503,'莆田市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(35,3504,'三明市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(35,3505,'泉州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(35,3506,'漳州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(35,3507,'南平市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(35,3508,'龙岩市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(35,3509,'宁德市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3601,'南昌市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3602,'景德镇市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3603,'萍乡市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3604,'九江市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3605,'新余市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3606,'鹰潭市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3607,'赣州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3608,'吉安市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3609,'宜春市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3610,'抚州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(36,3611,'上饶市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3701,'济南市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3702,'青岛市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3703,'淄博市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3704,'枣庄市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3705,'东营市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3706,'烟台市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3707,'潍坊市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3708,'济宁市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3709,'泰安市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3710,'威海市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3711,'日照市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3712,'莱芜市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3713,'临沂市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3714,'德州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3715,'聊城市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3716,'滨州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(37,3717,'菏泽市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4101,'郑州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4102,'开封市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4103,'洛阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4104,'平顶山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4105,'安阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4106,'鹤壁市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4108,'焦作市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4109,'濮阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4110,'许昌市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4112,'三门峡市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4113,'南阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4114,'商丘市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4115,'信阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4116,'周口市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(41,4117,'驻马店市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4201,'武汉市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4202,'黄石市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4203,'十堰市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4205,'宜昌市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4206,'襄阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4207,'鄂州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4208,'荆门市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4209,'孝感市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4210,'荆州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4211,'黄冈市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4213,'随州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4228,'恩施土家族苗族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4302,'株洲市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4303,'湘潭市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4304,'衡阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4305,'邵阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4306,'岳阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4307,'常德市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4308,'张家界市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4309,'益阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4310,'郴州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4311,'永州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4312,'怀化市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4313,'娄底市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4331,'湘西土家族苗族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6211,'定西市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4401,'广州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4402,'韶关市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4403,'深圳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4404,'珠海市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4405,'汕头市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4407,'江门市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4503,'桂林市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4504,'梧州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4505,'北海市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4506,'防城港市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4507,'钦州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4508,'贵港市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4509,'玉林市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4510,'百色市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4511,'贺州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4512,'河池市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(46,4603,'三沙市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(46,4604,'儋州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5101,'成都市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5103,'自贡市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5104,'攀枝花市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5105,'泸州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5106,'德阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5107,'绵阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5108,'广元市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5109,'遂宁市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5110,'内江市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5111,'乐山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5113,'南充市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5114,'眉山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5115,'宜宾市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5116,'广安市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5118,'雅安市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5119,'巴中市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4513,'来宾市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(45,4514,'崇左市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(46,4601,'海口市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(46,4602,'三亚市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5120,'资阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5132,'阿坝藏族羌族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5133,'甘孜藏族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5134,'凉山彝族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(52,5201,'贵阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(52,5202,'六盘水市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(52,5204,'安顺市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(52,5205,'毕节市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(52,5206,'铜仁市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(52,5223,'黔西南布依族苗族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(52,5227,'黔南布依族苗族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5301,'昆明市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5303,'曲靖市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5304,'玉溪市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5305,'保山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5306,'昭通市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5308,'普洱市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5323,'楚雄彝族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5325,'红河哈尼族彝族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5326,'文山壮族苗族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5328,'西双版纳傣族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5329,'大理白族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5331,'德宏傣族景颇族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5333,'怒江傈僳族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5334,'迪庆藏族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(54,5401,'拉萨市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(54,5402,'日喀则市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(54,5403,'昌都市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(54,5404,'林芝市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(54,5405,'山南市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(54,5424,'那曲地区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(54,5425,'阿里地区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6101,'西安市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6102,'铜川市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6104,'咸阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4408,'湛江市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6105,'渭南市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6106,'延安市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6107,'汉中市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6108,'榆林市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6109,'安康市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(61,6110,'商洛市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6201,'兰州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6202,'嘉峪关市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6203,'金昌市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6204,'白银市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6205,'天水市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6206,'武威市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6207,'张掖市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6208,'平凉市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6209,'酒泉市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6210,'庆阳市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6212,'陇南市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6229,'临夏回族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(62,6230,'甘南藏族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(63,6301,'西宁市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(63,6302,'海东市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(63,6322,'海北藏族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(63,6323,'黄南藏族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(63,6325,'海南藏族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(63,6327,'玉树藏族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(63,6328,'海西蒙古族藏族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(64,6401,'银川市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(64,6402,'石嘴山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(64,6403,'吴忠市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(64,6404,'固原市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(64,6405,'中卫市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6501,'乌鲁木齐市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6502,'克拉玛依市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6504,'吐鲁番市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6505,'哈密市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6523,'昌吉回族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6527,'博尔塔拉蒙古自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6528,'巴音郭楞蒙古自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6529,'阿克苏地区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6530,'克孜勒苏柯尔克孜自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6532,'和田地区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6540,'伊犁哈萨克自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6542,'塔城地区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6543,'阿勒泰地区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7101,'台北市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7102,'高雄市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7103,'台南市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7104,'台中市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7106,'南投县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7107,'基隆市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7108,'新竹市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7109,'嘉义市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7111,'新北市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7112,'宜兰县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7113,'新竹县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7115,'苗栗县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7119,'嘉义县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7121,'云林县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7124,'屏东县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7125,'台东县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7126,'花莲县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7127,'澎湖县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(81,8100,'香港特别行政区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(82,8200,'澳门特别行政区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(31,3100,'上海市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(50,5000,'重庆市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1303,'秦皇岛市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1304,'邯郸市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1305,'邢台市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(15,1522,'兴安盟',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3201,'南京市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(34,3408,'安庆市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(51,5117,'达州市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7117,'彰化县',null);
+insert into sysinfo.city(pid,cid,city,isused) values(65,6531,'喀什地区',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1306,'保定市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1307,'张家口市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2303,'鸡西市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(32,3211,'镇江市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(43,4301,'长沙市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(44,4406,'佛山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(63,6326,'果洛藏族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(13,1302,'唐山市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(12,1200,'天津市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(23,2304,'鹤岗市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(42,4212,'咸宁市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(52,5226,'黔东南苗族侗族自治州',null);
+insert into sysinfo.city(pid,cid,city,isused) values(53,5309,'临沧市',null);
+insert into sysinfo.city(pid,cid,city,isused) values(71,7114,'桃园市',null);
