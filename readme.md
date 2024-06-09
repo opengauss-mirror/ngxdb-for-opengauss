@@ -174,16 +174,16 @@ else
   make && make install
   cp ../bootstrap /usr/local/nginx/html/ -r
   cd ..
-  sed -i '/error_page/i\        location /func {' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\            opengaussconn "host=127.0.0.1 dbname=opengauss user=conn password=Gao12345 port=5432";' /usr/local/nginx/conf/nginx.conf     
-  sed -i '/error_page/i\            rewrite ^func/(.*)$ /$1 break;' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        }' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        ' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        location /help {' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\            opengausshelp "host=127.0.0.1 dbname=opengauss user=conn password=Gao12345 port=5432";' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\            break;' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        }' /usr/local/nginx/conf/nginx.conf
-  sed -i '/error_page/i\        ' /usr/local/nginx/conf/nginx.conf  
+  sed -i '/ \{6,\}location \/ {/i\        location /func {' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\            opengaussconn "host=127.0.0.1 dbname=postgres user=conn password=gao@12345 port=5432";' /usr/local/nginx/conf/nginx.conf     
+  sed -i '/ \{6,\}location \/ {/i\            rewrite ^/func/(.*)$ /$1 break;' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        }' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        ' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        location /help {' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\            opengausshelp "host=127.0.0.1 dbname=postgres user=conn password=gao@12345 port=5432";' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\            break;' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        }' /usr/local/nginx/conf/nginx.conf
+  sed -i '/ \{6,\}location \/ {/i\        ' /usr/local/nginx/conf/nginx.conf  
 fi
 ```
 * 如果opengauss的安装目录不是/opt/software/openGauss，会提示有文件找不到，请将src/opengauss/config文件里的/opt/software/openGauss替换为opengauss的安装目录
